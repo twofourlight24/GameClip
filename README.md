@@ -45,4 +45,3 @@
 * **Scrum Master:** [이태근]
 * **Tech Writer:** [이름]
 * **DevRel (Presenter):** [이태근]
-* **Backend Developer:** [이름]
