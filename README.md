@@ -44,3 +44,4 @@
 * **Scrum Master:** [이름]
 * **Tech Writer:** [이름]
 * **DevRel (Presenter):** [이름]
+* **Back-end Developer:** 유영준
