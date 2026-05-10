@@ -1,4 +1,4 @@
-# 🚀 프로젝트 명 (서비스 이름을 적어주세요)
+# 🚀 프로젝트 명 (GameClip)
 
 > **"여기에 서비스를 매력적으로 표현하는 한 줄 소개를 적어주세요."**
 
@@ -26,9 +26,8 @@
 
 ## 🛠️ 5. 기술 스택 및 아키텍처
 * **언어:** HTML5, CSS3, JavaScript
-* **스타일링:** Tailwind CSS
 * **버전 관리 및 배포:** Git, GitHub, GitHub Pages
-* **기획 도구:** Figma, Notion
+* **기획 도구:** Notion
 
 ## 🤝 6. 팀 규칙 및 역할 분담
 ### 📌 팀 규칙
@@ -39,7 +38,7 @@
 
 ### 👥 팀원 역할
 * **PM (Product Manager):** [이름]
-* **Tech Lead:** [이름]
+* **Tech Lead:** [이윤세]
 * **UI/UX Designer:** [이름]
 * **QA Engineer:** [이름]
 * **Scrum Master:** [이름]
