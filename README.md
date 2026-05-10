@@ -43,5 +43,5 @@
 * **UI/UX Designer:** [이름]
 * **QA Engineer:** [이름]
 * **Scrum Master:** [이름]
-* **Tech Writer:** [이름]
+* **Tech Writer:** [오현서]
 * **DevRel (Presenter):** [이름]
