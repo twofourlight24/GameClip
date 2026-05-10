@@ -43,7 +43,7 @@
 * **PM (Product Manager):** [이태근]
 * **Tech Lead:** [이윤세]
 * **UI/UX Designer:** [김승헌]
-* **QA Engineer:** [이름]
+* **QA Engineer:** [오성민]
 * **Scrum Master:** [이태근]
 * **Tech Writer:** [오현서]
 * **DevRel (Presenter):** [이태근]
