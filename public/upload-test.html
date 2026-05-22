@@ -352,7 +352,8 @@
           const title = document.createElement("strong");
           const meta = document.createElement("small");
           title.textContent = item.title || item.originalName;
-          meta.textContent = `${formatBytes(item.size)} | ${item.gameTag || "no tag"} | ${item.videoUrl}`;
+          meta.textContent =
+            `${formatBytes(item.size)} | ${item.gameTag || "no tag"} | uploaded ${formatTimestamp(item.createdAt)} | ${item.videoUrl}`;
           text.append(title, meta);
 
           const playButton = document.createElement("button");
@@ -440,6 +441,20 @@
         }
 
         return `${size.toFixed(size >= 10 || unit === "B" ? 0 : 1)} ${unit}`;
+      }
+
+      function formatTimestamp(value) {
+        if (!value) {
+          return "unknown time";
+        }
+
+        const timestamp = new Date(value);
+
+        if (Number.isNaN(timestamp.getTime())) {
+          return value;
+        }
+
+        return timestamp.toLocaleString();
       }
     </script>
   </body>
