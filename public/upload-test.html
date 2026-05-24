@@ -353,7 +353,7 @@
           const meta = document.createElement("small");
           title.textContent = item.title || item.originalName;
           meta.textContent =
-            `${formatBytes(item.size)} | ${item.gameTag || "no tag"} | uploaded ${formatTimestamp(item.createdAt)} | ${item.videoUrl}`;
+            `태그: ${item.gameTag || "no tag"} | 업로더: ${item.uploader} | 크기: ${formatBytes(item.size)} | 시간: ${formatTimestamp(item.createdAt)} | ${item.videoUrl}`;
           text.append(title, meta);
 
           const playButton = document.createElement("button");
