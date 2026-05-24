@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
 import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { randomUUID } from "node:crypto";
+import { pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { basename, extname, join } from "node:path";
 
 const port = Number(process.env.UPLOAD_PORT || 4000);
@@ -51,9 +51,15 @@ createServer(async (request, response) => {
     const videoId = url.pathname.match(/^\/api\/videos\/([^/]+)$/)?.[1];
 
     if (request.method === "DELETE" && videoId) {
-      await deleteVideo(videoId);
+      await deleteVideo(videoId, await readJsonRequest(request));
       response.writeHead(204);
       response.end();
+      return;
+    }
+
+    if (request.method === "PATCH" && videoId) {
+      const video = await updateVideo(videoId, await readJsonRequest(request));
+      sendJson(response, 200, toPublicVideo(video, request));
       return;
     }
 
@@ -109,6 +115,7 @@ async function saveVideoUpload(request) {
     gameName: textField(parts.fields.gameName, ""),
     gameTag: textField(parts.fields.gameTag, ""),
     uploader: textField(parts.fields.uploader, ""),
+    passwordHash: passwordField(parts.fields.password),
     originalName: file.filename,
     contentType: file.contentType,
     size: file.data.length,
@@ -189,13 +196,15 @@ async function readVideos() {
   }
 }
 
-async function deleteVideo(id) {
+async function deleteVideo(id, payload = {}) {
   const videos = await readVideos();
   const video = videos.find((entry) => entry.id === id);
 
   if (!video) {
     throw httpError(404, "Video not found.");
   }
+
+  verifyVideoPassword(video, payload.password);
 
   const fileName = basename(video.videoPath || new URL(video.videoUrl).pathname);
   await unlink(join(uploadDir, fileName)).catch((error) => {
@@ -209,6 +218,29 @@ async function deleteVideo(id) {
     `${JSON.stringify(videos.filter((entry) => entry.id !== id), null, 2)}\n`,
     "utf8",
   );
+}
+
+async function updateVideo(id, payload = {}) {
+  const videos = await readVideos();
+  const video = videos.find((entry) => entry.id === id);
+
+  if (!video) {
+    throw httpError(404, "Video not found.");
+  }
+
+  verifyVideoPassword(video, payload.password);
+
+  const editableFields = ["title", "uploader", "gameName", "gameTag"];
+
+  for (const field of editableFields) {
+    if (Object.hasOwn(payload, field)) {
+      video[field] = editableTextField(payload[field], field === "title" ? video.originalName : "");
+    }
+  }
+
+  video.updatedAt = new Date().toISOString();
+  await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
+  return video;
 }
 
 function readBody(request) {
@@ -230,6 +262,32 @@ function readBody(request) {
     request.on("end", () => resolve(Buffer.concat(chunks)));
     request.on("error", reject);
   });
+}
+
+async function readJsonRequest(request) {
+  const contentLength = Number(request.headers["content-length"] || 0);
+
+  if (!contentLength) {
+    return {};
+  }
+
+  const contentType = request.headers["content-type"] || "";
+
+  if (!contentType.startsWith("application/json")) {
+    throw httpError(415, "Use application/json for this request.");
+  }
+
+  const text = (await readBody(request)).toString("utf8").trim();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw httpError(400, "Request body must be valid JSON.");
+  }
 }
 
 function parseMultipartBody(body, boundary) {
@@ -290,10 +348,71 @@ function textField(value, fallback) {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+function editableTextField(value, fallback) {
+  if (typeof value !== "string") {
+    throw httpError(400, "Editable fields must be text.");
+  }
+
+  const text = value.trim();
+
+  if (text.length > 120) {
+    throw httpError(400, "Editable fields must be 120 characters or fewer.");
+  }
+
+  return text || fallback;
+}
+
+function passwordField(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  return hashPassword(value);
+}
+
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("base64");
+  const iterations = 310000;
+  const keyLength = 32;
+  const digest = "sha256";
+  const hash = pbkdf2Sync(password, salt, iterations, keyLength, digest).toString("base64");
+  return `pbkdf2:${digest}:${iterations}:${salt}:${hash}`;
+}
+
+function verifyVideoPassword(video, password) {
+  if (!video.passwordHash) {
+    return;
+  }
+
+  if (typeof password !== "string" || !password) {
+    throw httpError(401, "Password is required for this video.");
+  }
+
+  if (!verifyPassword(password, video.passwordHash)) {
+    throw httpError(403, "Password is incorrect.");
+  }
+}
+
+function verifyPassword(password, storedValue) {
+  const [scheme, digest, iterationsText, salt, expectedHash] = String(storedValue).split(":");
+  const iterations = Number(iterationsText);
+
+  if (scheme !== "pbkdf2" || !digest || !Number.isInteger(iterations) || !salt || !expectedHash) {
+    throw httpError(500, "Stored password format is invalid.");
+  }
+
+  const expected = Buffer.from(expectedHash, "base64");
+  const actual = pbkdf2Sync(password, salt, iterations, expected.length, digest);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
 function toPublicVideo(video, request) {
   const videoPath = video.videoPath || new URL(video.videoUrl).pathname;
+  const { passwordHash, ...publicVideo } = video;
+
   return {
-    ...video,
+    ...publicVideo,
+    hasPassword: Boolean(passwordHash),
     videoPath,
     videoUrl: `${getPublicOrigin(request)}${videoPath}`,
   };
@@ -314,7 +433,7 @@ function sendJson(response, statusCode, payload) {
 function setCorsHeaders(response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
 }
 
 function httpError(statusCode, message) {
