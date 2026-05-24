@@ -151,7 +151,7 @@
 
       .video-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
         gap: 10px;
         align-items: center;
         border: 1px solid #293044;
@@ -236,6 +236,10 @@
             <label>
               Uploader
               <input name="uploader" value="Presenter" />
+            </label>
+            <label>
+              Password (optional)
+              <input name="password" type="password" autocomplete="new-password" placeholder="Set this to protect edits and deletion" />
             </label>
             <div class="actions">
               <button id="uploadButton">Upload video</button>
@@ -353,7 +357,7 @@
           const meta = document.createElement("small");
           title.textContent = item.title || item.originalName;
           meta.textContent =
-            `태그: ${item.gameTag || "no tag"} | 업로더: ${item.uploader} | 크기: ${formatBytes(item.size)} | 시간: ${formatTimestamp(item.createdAt)} | ${item.videoUrl}`;
+            `게임: ${item.gameName || "no game"} | 태그: ${item.gameTag || "no tag"} | 업로더: ${item.uploader} | ${item.hasPassword ? "비밀번호 보호됨" : "공개 수정/삭제"} | 크기: ${formatBytes(item.size)} | 시간: ${formatTimestamp(item.createdAt)} | ${item.videoUrl}`;
           text.append(title, meta);
 
           const playButton = document.createElement("button");
@@ -361,24 +365,99 @@
           playButton.textContent = "Play";
           playButton.addEventListener("click", () => playVideo(item));
 
+          const editButton = document.createElement("button");
+          editButton.type = "button";
+          editButton.className = "secondary";
+          editButton.textContent = "Edit";
+          editButton.addEventListener("click", () => editVideo(item));
+
           const deleteButton = document.createElement("button");
           deleteButton.type = "button";
           deleteButton.className = "secondary";
           deleteButton.textContent = "Delete";
           deleteButton.addEventListener("click", () => deleteVideo(item));
 
-          row.append(text, playButton, deleteButton);
+          row.append(text, playButton, editButton, deleteButton);
           videos.append(row);
         }
       }
 
+      async function editVideo(item) {
+        const nextTitle = prompt("새 제목을 입력하세요.", item.title || item.originalName);
+
+        if (nextTitle === null) {
+          return;
+        }
+
+        const nextGameName = prompt("새 게임명을 입력하세요.", item.gameName || "");
+
+        if (nextGameName === null) {
+          return;
+        }
+
+        const nextGameTag = prompt("새 태그를 입력하세요.", item.gameTag || "");
+
+        if (nextGameTag === null) {
+          return;
+        }
+
+        const nextUploader = prompt("새 업로드 닉네임을 입력하세요.", item.uploader || "");
+
+        if (nextUploader === null) {
+          return;
+        }
+
+        const password = item.hasPassword ? prompt("이 영상의 비밀번호를 입력하세요.") : "";
+
+        if (item.hasPassword && password === null) {
+          return;
+        }
+
+        setBusy(true);
+        writeStatus(`Updating ${item.title || item.originalName}...`);
+
+        try {
+          const response = await fetch(`${cleanApiBaseUrl()}/api/videos/${item.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: nextTitle,
+              gameName: nextGameName,
+              gameTag: nextGameTag,
+              uploader: nextUploader,
+              password,
+            }),
+          });
+          const payload = await readPayload(response);
+
+          if (!response.ok) {
+            throw new Error(payload.message || `Update failed with ${response.status}.`);
+          }
+
+          writeStatus(`Updated ${payload.title || payload.originalName}.`);
+          await refreshVideos(false);
+        } catch (error) {
+          writeStatus(error.message, true);
+        } finally {
+          setBusy(false);
+        }
+      }
+
       async function deleteVideo(item) {
+        const password = item.hasPassword ? prompt("이 영상을 삭제하려면 비밀번호를 입력하세요.") : "";
+
+        if (item.hasPassword && password === null) {
+          return;
+        }
+
         setBusy(true);
         writeStatus(`Deleting ${item.title || item.originalName}...`);
 
         try {
           const response = await fetch(`${cleanApiBaseUrl()}/api/videos/${item.id}`, {
             method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password }),
           });
 
           if (!response.ok) {
