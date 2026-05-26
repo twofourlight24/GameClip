@@ -13,7 +13,7 @@ export const trendingGames: Game[] = [
     name: "리그 오브 레전드",
     tag: "lol",
     color: "#c89b3c",
-    icon: "https://readdy.ai/api/search-image?query=League%20of%20Legends%20game%20logo%20icon%20circular%20gold%20and%20blue%20colors%20dark%20background%20minimalist%20clean%20design%20esports%20logo%20style&width=128&height=128&seq=301&orientation=squarish",
+    icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/38a199c5-d697-4fc7-866b-a0bba9bc225a_LOL.png?v=0de9ef41d4549041eb3693a048cd098e",
     isTrending: true,
   },
   {
@@ -21,7 +21,7 @@ export const trendingGames: Game[] = [
     name: "발로란트",
     tag: "valorant",
     color: "#ff4655",
-    icon: "https://readdy.ai/api/search-image?query=Valorant%20game%20logo%20icon%20circular%20red%20and%20black%20colors%20dark%20background%20minimalist%20clean%20design%20esports%20logo%20style&width=128&height=128&seq=302&orientation=squarish",
+    icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/6793153f-6221-465a-bf06-1acb78fa37b6_valorant.png?v=f90693dfcb51d6315b71f3a52814511f",
     isTrending: true,
   },
   {
@@ -29,7 +29,7 @@ export const trendingGames: Game[] = [
     name: "배틀그라운드",
     tag: "pubg",
     color: "#f2a900",
-    icon: "https://readdy.ai/api/search-image?query=PUBG%20game%20logo%20icon%20circular%20yellow%20and%20black%20colors%20dark%20background%20minimalist%20clean%20design%20esports%20logo%20style&width=128&height=128&seq=303&orientation=squarish",
+    icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/9f795baa-61fc-4838-909c-ee172342bcee_battleground.png?v=d140232c13bfc26dfe4dbd1f92dc624f",
     isTrending: true,
   },
   {
@@ -37,7 +37,7 @@ export const trendingGames: Game[] = [
     name: "오버워치 2",
     tag: "overwatch",
     color: "#f99e1a",
-    icon: "https://readdy.ai/api/search-image?query=Overwatch%202%20game%20logo%20icon%20circular%20orange%20and%20black%20colors%20dark%20background%20minimalist%20clean%20design%20esports%20logo%20style&width=128&height=128&seq=304&orientation=squarish",
+    icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/5d438cd6-c518-4ed8-822c-8fcf438baea7_overwatch.png?v=780c6ccc3d8ea4b89c00a6243f5c1ba5",
     isTrending: true,
   },
   {
@@ -45,7 +45,7 @@ export const trendingGames: Game[] = [
     name: "메이플스토리",
     tag: "maple",
     color: "#ff6b9d",
-    icon: "https://readdy.ai/api/search-image?query=MapleStory%20game%20logo%20icon%20circular%20pink%20and%20purple%20colors%20dark%20background%20minimalist%20clean%20design%20esports%20logo%20style&width=128&height=128&seq=305&orientation=squarish",
+    icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/ce9a145b-0757-480b-99c5-c42901807d00_maplestory.png?v=be05ab5773264cbafeba0bb25f432e61",
     isTrending: true,
   },
   {
@@ -53,7 +53,7 @@ export const trendingGames: Game[] = [
     name: "로스트아크",
     tag: "lostark",
     color: "#a855f7",
-    icon: "https://readdy.ai/api/search-image?query=Lost%20Ark%20game%20logo%20icon%20circular%20purple%20and%20gold%20colors%20dark%20background%20minimalist%20clean%20design%20esports%20logo%20style&width=128&height=128&seq=306&orientation=squarish",
+    icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/94386b5a-d300-49dc-b63e-cd5d2b94d95f_lostark.png?v=6926a193d3436b8ae52fc0b58832c95f",
     isTrending: true,
   },
 ];
