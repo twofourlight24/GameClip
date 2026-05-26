@@ -6,41 +6,44 @@ interface PhotoGridProps {
 }
 
 export default function PhotoGrid({ videos, onVideoClick }: PhotoGridProps) {
-  const formatCount = (num: number) => {
-    if (num >= 10000) return `${(num / 10000).toFixed(1)}만`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
-    return String(num);
-  };
-
   return (
     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-3 gap-1 px-1 pb-8">
       {videos.map((video) => (
-        <div
+        <button
+          type="button"
           key={video.id}
-          className="relative aspect-square overflow-hidden cursor-pointer group"
+          className="relative aspect-square overflow-hidden group bg-black text-left"
           onClick={() => onVideoClick?.(video)}
         >
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+          {video.videoUrl ? (
+            <video
+              src={video.videoUrl}
+              poster={video.thumbnail || undefined}
+              muted
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <img
+              src={video.thumbnail}
+              alt={video.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-2 pt-8">
+            <p className="line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow">
+              {video.title}
+            </p>
+            <p className="mt-1 truncate text-[10px] text-white/75">{video.gameName}</p>
+          </div>
+
           {/* Video indicator */}
           <div className="absolute top-2 right-2 text-white z-10">
             <i className="ri-play-fill text-lg drop-shadow-md" />
           </div>
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-5 text-white z-10">
-            <div className="flex items-center gap-1.5">
-              <i className="ri-heart-fill text-lg" />
-              <span className="text-sm font-bold">{formatCount(video.likes)}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <i className="ri-chat-1-fill text-lg" />
-              <span className="text-sm font-bold">{formatCount(video.comments)}</span>
-            </div>
-          </div>
-        </div>
+        </button>
       ))}
     </div>
   );

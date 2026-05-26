@@ -107,6 +107,7 @@ export default function UploadPanel() {
       setSelectedGenre(null);
       setNickname("");
       setPassword("");
+      window.dispatchEvent(new Event("gameclip:videos-changed"));
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "업로드에 실패했습니다.");
     } finally {

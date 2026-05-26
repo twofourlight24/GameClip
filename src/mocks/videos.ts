@@ -4,6 +4,7 @@ export interface Video {
   gameName: string;
   gameTag: string;
   thumbnail: string;
+  videoUrl?: string;
   views: string;
   duration: string;
   uploader: string;

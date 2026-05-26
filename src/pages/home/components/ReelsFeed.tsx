@@ -1,39 +1,119 @@
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import ReelsItem from "./ReelsItem";
 import PhotoGrid from "./PhotoGrid";
-import { videos } from "@/mocks/videos";
+import type { Video } from "@/mocks/videos";
+
+const apiPort = "4000";
+const defaultApiBaseUrl =
+  import.meta.env.VITE_UPLOAD_API_BASE_URL ||
+  `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
+
+type UploadedVideo = {
+  id: string;
+  title?: string;
+  originalName?: string;
+  gameName?: string;
+  gameTag?: string;
+  uploader?: string;
+  size?: number;
+  videoUrl: string;
+};
 
 interface ReelsFeedProps {
   selectedTag?: string | null;
   onTagChange?: (tag: string | null) => void;
 }
 
-export default function ReelsFeed({ selectedTag: propSelectedTag, onTagChange }: ReelsFeedProps) {
-  const [internalSelectedTag, setInternalSelectedTag] = useState<string | null>(null);
+export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onTagChange }: ReelsFeedProps) {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [activeVideo, setActiveVideo] = useState<Video | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const selectedTag = propSelectedTag !== undefined ? propSelectedTag : internalSelectedTag;
-  const setSelectedTag = (tag: string | null) => {
-    if (onTagChange) {
-      onTagChange(tag);
-    } else {
-      setInternalSelectedTag(tag);
+  const loadVideos = useCallback(async (options?: { signal?: AbortSignal; showLoading?: boolean }) => {
+    const showLoading = options?.showLoading ?? false;
+
+    if (showLoading) {
+      setIsLoading(true);
     }
-  };
+    setErrorMessage("");
 
-  const gameTags = useMemo(() => {
-    const tags = [...new Set(videos.map((v) => v.gameTag))];
-    return tags.filter((tag) => tag !== "tekken" && tag !== "fconline");
+    try {
+      const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos`, {
+        signal: options?.signal,
+      });
+      const payload = (await readPayload(response)) as UploadedVideo[] | { message?: string };
+
+      if (!response.ok) {
+        throw new Error(!Array.isArray(payload) && payload.message ? payload.message : "영상을 불러오지 못했습니다.");
+      }
+
+      setVideos(Array.isArray(payload) ? payload.map(toFeedVideo) : []);
+    } catch (error) {
+      if (options?.signal?.aborted) return;
+      setVideos([]);
+      setErrorMessage(error instanceof Error ? error.message : "영상을 불러오지 못했습니다.");
+    } finally {
+      if (!options?.signal?.aborted && showLoading) {
+        setIsLoading(false);
+      }
+    }
   }, []);
 
-  const getGameName = (tag: string) => {
-    const video = videos.find((v) => v.gameTag === tag);
-    return video?.gameName || tag;
+  useEffect(() => {
+    const controller = new AbortController();
+    loadVideos({ signal: controller.signal, showLoading: true });
+
+    return () => controller.abort();
+  }, [loadVideos]);
+
+  useEffect(() => {
+    const handleVideosChanged = () => {
+      loadVideos();
+    };
+
+    window.addEventListener("gameclip:videos-changed", handleVideosChanged);
+    return () => window.removeEventListener("gameclip:videos-changed", handleVideosChanged);
+  }, [loadVideos]);
+
+  const handleVideoUpdated = (updatedVideo: Video) => {
+    setActiveVideo(updatedVideo);
+    setVideos((currentVideos) =>
+      currentVideos.map((video) => (video.id === updatedVideo.id ? updatedVideo : video)),
+    );
   };
 
-  const filteredVideos = useMemo(() => {
-    if (!selectedTag) return videos;
-    return videos.filter((v) => v.gameTag === selectedTag);
-  }, [selectedTag]);
+  const handleVideoDeleted = (videoId: string) => {
+    setVideos((currentVideos) => currentVideos.filter((video) => video.id !== videoId));
+    setActiveVideo(null);
+  };
+
+  if (activeVideo) {
+    return createPortal(
+      <div
+        className="fixed inset-y-0 left-[72px] right-0 z-[70] overflow-hidden bg-black lg:left-[210px]"
+        onWheel={(event) => event.stopPropagation()}
+        onTouchMove={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveVideo(null)}
+          className="absolute left-3 top-3 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md border border-white/15"
+          aria-label="그리드로 돌아가기"
+        >
+          <i className="ri-arrow-left-line text-xl" />
+        </button>
+        <ReelsItem
+          video={activeVideo}
+          showHeaderSpacer={false}
+          onUpdated={handleVideoUpdated}
+          onDeleted={handleVideoDeleted}
+        />
+      </div>,
+      document.body,
+    );
+  }
 
   return (
     <div className="relative h-full overflow-y-auto scrollbar-hide">
@@ -44,56 +124,64 @@ export default function ReelsFeed({ selectedTag: propSelectedTag, onTagChange }:
         </span>
       </div>
 
-      {/* Filter chips */}
-      <div className="sticky top-10 z-40 px-3 py-1.5 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 w-fit mx-auto">
-          {gameTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all border whitespace-nowrap ${
-                selectedTag === tag
-                  ? "bg-sky-500/90 border-sky-400 text-white shadow-lg shadow-sky-500/20"
-                  : "bg-black/50 border-white/20 text-white/80 backdrop-blur-md hover:bg-black/70"
-              }`}
-            >
-              {getGameName(tag)}
-            </button>
-          ))}
-          <button
-            onClick={() => setSelectedTag(null)}
-            className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all border ${
-              selectedTag === null
-                ? "bg-sky-500/90 border-sky-400 text-white shadow-lg shadow-sky-500/20"
-                : "bg-black/50 border-white/20 text-white/80 backdrop-blur-md hover:bg-black/70"
-            }`}
-          >
-            전체
-          </button>
-        </div>
-      </div>
-
-      {/* Content: Photo Grid for "All", Reels for specific tag */}
-      {selectedTag === null ? (
-        <PhotoGrid
-          videos={filteredVideos}
-          onVideoClick={(v) => setSelectedTag(v.gameTag)}
-        />
-      ) : (
-        <div className="flex flex-col snap-y snap-mandatory">
-          {filteredVideos.map((video) => (
-            <ReelsItem key={video.id} video={video} />
-          ))}
+      {isLoading && (
+        <div className="flex h-[calc(100%-48px)] flex-col items-center justify-center text-[#a1a1aa]">
+          <i className="ri-loader-4-line mb-3 text-3xl text-sky-400 animate-spin" />
+          <p className="text-sm font-medium">업로드된 영상을 불러오는 중입니다</p>
         </div>
       )}
 
-      {selectedTag !== null && filteredVideos.length === 0 && (
-        <div className="h-full flex flex-col items-center justify-center text-[#a1a1aa]">
-          <i className="ri-search-line text-5xl mb-4 text-[#52525b]" />
-          <p className="text-base font-medium">해당 게임의 영상이 없습니다</p>
-          <p className="text-sm text-[#71717a] mt-1">다른 게임을 선택해보세요</p>
+      {!isLoading && errorMessage && (
+        <div className="flex h-[calc(100%-48px)] flex-col items-center justify-center px-6 text-center text-[#a1a1aa]">
+          <i className="ri-error-warning-line mb-3 text-4xl text-[#52525b]" />
+          <p className="text-base font-medium">영상을 불러오지 못했습니다</p>
+          <p className="mt-1 text-sm text-[#71717a]">{errorMessage}</p>
+        </div>
+      )}
+
+      {!isLoading && !errorMessage && videos.length > 0 && (
+        <PhotoGrid
+          videos={videos}
+          onVideoClick={(video) => setActiveVideo(video)}
+        />
+      )}
+
+      {!isLoading && !errorMessage && videos.length === 0 && (
+        <div className="flex h-[calc(100%-48px)] flex-col items-center justify-center text-[#a1a1aa]">
+          <i className="ri-film-line mb-4 text-5xl text-[#52525b]" />
+          <p className="text-base font-medium">아직 업로드된 영상이 없습니다</p>
         </div>
       )}
     </div>
   );
+}
+
+function toFeedVideo(video: UploadedVideo): Video {
+  const gameName = video.gameName || "게임 미지정";
+  const gameTag = video.gameTag || "untagged";
+
+  return {
+    id: video.id,
+    title: video.title || video.originalName || "제목 없는 영상",
+    gameName,
+    gameTag,
+    thumbnail: "",
+    videoUrl: video.videoUrl,
+    views: "0",
+    duration: "재생",
+    uploader: video.uploader || "익명",
+    avatar: "",
+    likes: 0,
+    comments: 0,
+    tags: [gameName, gameTag].filter(Boolean),
+  };
+}
+
+async function readPayload(response: Response) {
+  const text = await response.text();
+  return text ? JSON.parse(text) : {};
+}
+
+function cleanApiBaseUrl(value: string) {
+  return value.trim().replace(/\/$/, "");
 }
