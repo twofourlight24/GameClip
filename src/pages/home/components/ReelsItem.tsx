@@ -1,5 +1,11 @@
 import { useState } from "react";
 import type { Video } from "@/mocks/videos";
+import CommentPopup from "./CommentPopup";
+import MoreOptionsPopup from "./MoreOptionsPopup";
+import ReportPopup from "./ReportPopup";
+import EditPopup from "./EditPopup";
+import DeletePopup from "./DeletePopup";
+import AuthPopup from "./AuthPopup";
 
 interface ReelsItemProps {
   video: Video;
@@ -7,6 +13,25 @@ interface ReelsItemProps {
 
 export default function ReelsItem({ video }: ReelsItemProps) {
   const [liked, setLiked] = useState(false);
+  const [isCommentOpen, setIsCommentOpen] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authTarget, setAuthTarget] = useState<"edit" | "delete" | null>(null);
+
+  const openAuth = (target: "edit" | "delete") => {
+    setAuthTarget(target);
+    setIsAuthOpen(true);
+  };
+
+  const handleAuthSuccess = () => {
+    setIsAuthOpen(false);
+    if (authTarget === "edit") setIsEditOpen(true);
+    if (authTarget === "delete") setIsDeleteOpen(true);
+    setAuthTarget(null);
+  };
 
   return (
     <div className="h-full w-full snap-start relative flex flex-col items-center shrink-0">
@@ -21,11 +46,11 @@ export default function ReelsItem({ video }: ReelsItemProps) {
       </div>
 
       {/* Spacer for top sticky header (tabs + filter chips) */}
-      <div className="h-[88px] shrink-0 w-full pointer-events-none" />
+      <div className="h-[76px] shrink-0 w-full pointer-events-none" />
 
       {/* Main video container */}
       <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
-        <div className="relative w-full max-w-[460px] aspect-[9/16] max-h-full rounded-none md:rounded-2xl overflow-hidden shadow-2xl mx-auto">
+        <div className="relative w-full aspect-[16/9] max-h-[calc(100dvh-110px)] mx-auto rounded-none overflow-hidden">
           <img
             src={video.thumbnail}
             alt={video.title}
@@ -38,47 +63,53 @@ export default function ReelsItem({ video }: ReelsItemProps) {
 
           {/* Play button (centered) */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 cursor-pointer hover:bg-white/30 transition-colors">
-              <i className="ri-play-fill text-white text-3xl ml-1" />
+            <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 cursor-pointer hover:bg-white/30 transition-colors">
+              <i className="ri-play-fill text-white text-2xl ml-1" />
             </div>
           </div>
 
           {/* Right side actions */}
-          <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5 z-10">
+          <div className="absolute right-2.5 bottom-24 flex flex-col items-center gap-4 z-10">
             {/* Like */}
             <button
               onClick={() => setLiked(!liked)}
-              className="flex flex-col items-center gap-1 group"
+              className="flex flex-col items-center gap-0.5 group"
             >
-              <div className="w-10 h-10 flex items-center justify-center active:scale-90 transition-transform">
+              <div className="w-9 h-9 flex items-center justify-center active:scale-90 transition-transform">
                 <i
-                  className={`${liked ? "ri-heart-3-fill text-red-500" : "ri-heart-3-line text-white"} text-[28px] drop-shadow-lg transition-colors`}
+                  className={`${liked ? "ri-heart-3-fill text-red-500" : "ri-heart-3-line text-white"} text-[22px] drop-shadow-lg transition-colors`}
                 />
               </div>
-              <span className="text-white text-xs font-semibold drop-shadow-lg">
+              <span className="text-white text-[11px] font-semibold drop-shadow-lg">
                 {(video.likes / 1000).toFixed(1)}k
               </span>
             </button>
 
             {/* Comment */}
-            <button className="flex flex-col items-center gap-1 group">
-              <div className="w-10 h-10 flex items-center justify-center active:scale-90 transition-transform">
-                <i className="ri-chat-1-line text-white text-[26px] drop-shadow-lg" />
+            <button
+              onClick={() => setIsCommentOpen(true)}
+              className="flex flex-col items-center gap-0.5 group"
+            >
+              <div className="w-9 h-9 flex items-center justify-center active:scale-90 transition-transform">
+                <i className="ri-chat-1-line text-white text-[20px] drop-shadow-lg" />
               </div>
-              <span className="text-white text-xs font-semibold drop-shadow-lg">
+              <span className="text-white text-[11px] font-semibold drop-shadow-lg">
                 {(video.comments / 1000).toFixed(1)}k
               </span>
             </button>
 
             {/* More */}
-            <button className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
-              <div className="w-10 h-10 flex items-center justify-center">
-                <i className="ri-more-fill text-white text-[26px] drop-shadow-lg rotate-90" />
+            <button
+              onClick={() => setIsMoreOpen(true)}
+              className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+            >
+              <div className="w-9 h-9 flex items-center justify-center">
+                <i className="ri-more-fill text-white text-[20px] drop-shadow-lg rotate-90" />
               </div>
             </button>
 
             {/* Spinning disc (music/avatar) */}
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/40 mt-1 animate-[spin_8s_linear_infinite]">
+            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/40 mt-1 animate-[spin_8s_linear_infinite]">
               <img
                 src={video.avatar}
                 alt=""
@@ -88,30 +119,30 @@ export default function ReelsItem({ video }: ReelsItemProps) {
           </div>
 
           {/* Bottom info */}
-          <div className="absolute bottom-0 left-0 right-16 p-4 pb-10 z-10">
+          <div className="absolute bottom-0 left-0 right-14 p-3 pb-8 z-10">
             {/* Uploader */}
-            <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <img
                 src={video.avatar}
                 alt={video.uploader}
-                className="w-9 h-9 rounded-full object-cover border border-white/30"
+                className="w-8 h-8 rounded-full object-cover border border-white/30"
               />
-              <span className="text-white text-sm font-bold drop-shadow-lg tracking-tight">
+              <span className="text-white text-[13px] font-bold drop-shadow-lg tracking-tight">
                 {video.uploader}
               </span>
             </div>
 
             {/* Title */}
-            <p className="text-white text-sm font-medium leading-relaxed mb-2.5 drop-shadow-lg line-clamp-2">
+            <p className="text-white text-[13px] font-medium leading-relaxed mb-2 drop-shadow-lg line-clamp-2">
               {video.title}
             </p>
 
             {/* Game tags */}
-            <div className="flex flex-wrap gap-1.5 mb-3">
+            <div className="flex flex-wrap gap-1 mb-2">
               {video.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-white/90 text-[11px] font-medium border border-white/20"
+                  className="px-1.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-white/90 text-[10px] font-medium border border-white/20"
                 >
                   {tag}
                 </span>
@@ -121,8 +152,8 @@ export default function ReelsItem({ video }: ReelsItemProps) {
             {/* Music info */}
             <div className="flex items-center gap-2 overflow-hidden">
               <i className="ri-music-2-line text-white/80 text-sm shrink-0" />
-              <div className="overflow-hidden relative w-44">
-                <p className="text-white/80 text-xs whitespace-nowrap animate-[marquee_8s_linear_infinite]">
+              <div className="overflow-hidden relative w-40">
+                <p className="text-white/80 text-[11px] whitespace-nowrap animate-[marquee_8s_linear_infinite]">
                   {video.gameName} - 오리지널 사운드 &middot; {video.duration}
                 </p>
               </div>
@@ -130,16 +161,61 @@ export default function ReelsItem({ video }: ReelsItemProps) {
           </div>
 
           {/* Duration badge */}
-          <div className="absolute top-4 right-3 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm text-white text-xs font-medium z-10">
+          <div className="absolute top-3 right-2.5 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium z-10">
             {video.duration}
           </div>
 
           {/* Game name badge */}
-          <div className="absolute top-4 left-3 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 z-10">
-            <span className="text-white text-xs font-semibold">{video.gameName}</span>
+          <div className="absolute top-3 left-2.5 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 z-10">
+            <span className="text-white text-[11px] font-semibold">{video.gameName}</span>
           </div>
         </div>
       </div>
+
+      {/* Comment Popup */}
+      <CommentPopup
+        isOpen={isCommentOpen}
+        onClose={() => setIsCommentOpen(false)}
+        videoTitle={video.title}
+        commentCount={video.comments}
+      />
+
+      {/* More Options Popup */}
+      <MoreOptionsPopup
+        isOpen={isMoreOpen}
+        onClose={() => setIsMoreOpen(false)}
+        onReport={() => setIsReportOpen(true)}
+        onEdit={() => openAuth("edit")}
+        onDelete={() => openAuth("delete")}
+      />
+
+      {/* Report Popup */}
+      <ReportPopup
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+      />
+
+      {/* Edit Popup */}
+      <EditPopup
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        video={{ title: video.title, gameName: video.gameName, tags: video.tags }}
+      />
+
+      {/* Delete Popup */}
+      <DeletePopup
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        videoTitle={video.title}
+      />
+
+      {/* Auth Popup */}
+      <AuthPopup
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={handleAuthSuccess}
+        actionLabel={authTarget === "edit" ? "편집" : "삭제"}
+      />
     </div>
   );
 }
