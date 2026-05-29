@@ -3,18 +3,38 @@ import { useState, useRef, useEffect } from "react";
 interface EditPopupProps {
   isOpen: boolean;
   onClose: () => void;
+  onUpdated?: (video: Partial<VideoPayload>) => void;
   video: {
+    id: string;
     title: string;
     gameName: string;
-    tags: string[];
+    gameTag: string;
+    uploader: string;
   };
 }
 
-export default function EditPopup({ isOpen, onClose, video }: EditPopupProps) {
+type VideoPayload = {
+  id: string;
+  title?: string;
+  gameName?: string;
+  gameTag?: string;
+  uploader?: string;
+  message?: string;
+};
+
+const apiPort = "4000";
+const defaultApiBaseUrl =
+  import.meta.env.VITE_UPLOAD_API_BASE_URL ||
+  `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
+
+export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPopupProps) {
   const [title, setTitle] = useState(video.title);
   const [gameName, setGameName] = useState(video.gameName);
-  const [tags, setTags] = useState(video.tags.join(", "));
-  const [saved, setSaved] = useState(false);
+  const [gameTag, setGameTag] = useState(video.gameTag);
+  const [uploader, setUploader] = useState(video.uploader);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,16 +56,46 @@ export default function EditPopup({ isOpen, onClose, video }: EditPopupProps) {
     if (isOpen) {
       setTitle(video.title);
       setGameName(video.gameName);
-      setTags(video.tags.join(", "));
-      setSaved(false);
+      setGameTag(video.gameTag);
+      setUploader(video.uploader);
+      setPassword("");
+      setError("");
+      setIsSaving(false);
     }
   }, [isOpen, video]);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => {
+  const handleSave = async () => {
+    if (!title.trim() || !gameName.trim() || !gameTag.trim() || !uploader.trim()) return;
+
+    setIsSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos/${video.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          gameName,
+          gameTag,
+          uploader,
+          password,
+        }),
+      });
+      const payload = (await readPayload(response)) as VideoPayload;
+
+      if (!response.ok) {
+        throw new Error(payload.message || `수정에 실패했습니다. (${response.status})`);
+      }
+
+      setPassword("");
+      onUpdated?.(payload);
       onClose();
-    }, 1200);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "수정에 실패했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -72,18 +122,9 @@ export default function EditPopup({ isOpen, onClose, video }: EditPopupProps) {
           </button>
         </div>
 
-        {/* Saved state */}
-        {saved ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
-              <i className="ri-check-line text-emerald-400 text-3xl" />
-            </div>
-            <p className="text-white text-sm font-semibold">변경사항이 저장되었습니다</p>
-          </div>
-        ) : (
-          <>
-            {/* Form */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
+        <>
+          {/* Form */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
               {/* Title */}
               <div className="space-y-1.5">
                 <label className="text-[#a1a1aa] text-xs font-medium">제목</label>
@@ -91,6 +132,7 @@ export default function EditPopup({ isOpen, onClose, video }: EditPopupProps) {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  disabled={isSaving}
                   className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
                 />
               </div>
@@ -102,44 +144,88 @@ export default function EditPopup({ isOpen, onClose, video }: EditPopupProps) {
                   type="text"
                   value={gameName}
                   onChange={(e) => setGameName(e.target.value)}
+                  disabled={isSaving}
                   className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
                 />
               </div>
 
-              {/* Tags */}
-              <div className="space-y-1.5">
-                <label className="text-[#a1a1aa] text-xs font-medium">태그 (쉼표로 구분)</label>
-                <input
-                  type="text"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="예: FPS, 에임, 클립"
-                  className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
-                />
-                <p className="text-[#52525b] text-[10px]">
-                  쉼표(,)로 구분하여 여러 태그를 입력할 수 있습니다
-                </p>
-              </div>
+            {/* Game tag */}
+            <div className="space-y-1.5">
+              <label className="text-[#a1a1aa] text-xs font-medium">태그</label>
+              <input
+                type="text"
+                value={gameTag}
+                onChange={(e) => setGameTag(e.target.value)}
+                placeholder="예: fps"
+                disabled={isSaving}
+                className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
+              />
             </div>
 
-            {/* Footer actions */}
-            <div className="px-4 py-3 border-t border-white/10 shrink-0 flex gap-2">
+            {/* Uploader */}
+            <div className="space-y-1.5">
+              <label className="text-[#a1a1aa] text-xs font-medium">닉네임</label>
+              <input
+                type="text"
+                value={uploader}
+                onChange={(e) => setUploader(e.target.value)}
+                placeholder="업로드에 표시될 닉네임"
+                disabled={isSaving}
+                className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="text-[#a1a1aa] text-xs font-medium">비밀번호</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="비밀번호가 설정된 영상이면 입력"
+                autoComplete="current-password"
+                disabled={isSaving}
+                className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
+              />
+            </div>
+
+            {error && (
+              <p
+                className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-200"
+              >
+                {error}
+              </p>
+            )}
+          </div>
+
+          {/* Footer actions */}
+          <div className="px-4 py-3 border-t border-white/10 shrink-0 flex gap-2">
               <button
                 onClick={onClose}
+                disabled={isSaving}
                 className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#a1a1aa] text-sm font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-500/90 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors"
+                disabled={!title.trim() || !gameName.trim() || !gameTag.trim() || !uploader.trim() || isSaving}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-500/90 hover:bg-emerald-500 disabled:bg-[#3f3f46] disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
               >
-                저장
+                {isSaving ? "저장 중..." : "저장"}
               </button>
-            </div>
-          </>
-        )}
+          </div>
+        </>
       </div>
     </div>
   );
+}
+
+async function readPayload(response: Response) {
+  const text = await response.text();
+  return text ? JSON.parse(text) : {};
+}
+
+function cleanApiBaseUrl(value: string) {
+  return value.trim().replace(/\/$/, "");
 }

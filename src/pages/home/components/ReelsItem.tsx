@@ -5,68 +5,87 @@ import MoreOptionsPopup from "./MoreOptionsPopup";
 import ReportPopup from "./ReportPopup";
 import EditPopup from "./EditPopup";
 import DeletePopup from "./DeletePopup";
-import AuthPopup from "./AuthPopup";
 
 interface ReelsItemProps {
   video: Video;
+  showHeaderSpacer?: boolean;
+  onUpdated?: (video: Video) => void;
+  onDeleted?: (videoId: string) => void;
 }
 
-export default function ReelsItem({ video }: ReelsItemProps) {
+export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, onDeleted }: ReelsItemProps) {
   const [liked, setLiked] = useState(false);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authTarget, setAuthTarget] = useState<"edit" | "delete" | null>(null);
 
-  const openAuth = (target: "edit" | "delete") => {
-    setAuthTarget(target);
-    setIsAuthOpen(true);
-  };
-
-  const handleAuthSuccess = () => {
-    setIsAuthOpen(false);
-    if (authTarget === "edit") setIsEditOpen(true);
-    if (authTarget === "delete") setIsDeleteOpen(true);
-    setAuthTarget(null);
+  const handleUpdated = (payload: Partial<Video>) => {
+    onUpdated?.({
+      ...video,
+      ...payload,
+      tags: [payload.gameName || video.gameName, payload.gameTag || video.gameTag].filter(Boolean),
+    });
   };
 
   return (
     <div className="h-full w-full snap-start relative flex flex-col items-center shrink-0">
       {/* Blurred background */}
       <div className="absolute inset-0">
-        <img
-          src={video.thumbnail}
-          alt=""
-          className="w-full h-full object-cover blur-[80px] scale-150 opacity-50"
-        />
+        {video.videoUrl ? (
+          <video
+            src={video.videoUrl}
+            poster={video.thumbnail || undefined}
+            muted
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover blur-[80px] scale-150 opacity-40"
+          />
+        ) : (
+          <img
+            src={video.thumbnail}
+            alt=""
+            className="w-full h-full object-cover blur-[80px] scale-150 opacity-50"
+          />
+        )}
         <div className="absolute inset-0 bg-black/40" />
       </div>
 
       {/* Spacer for top sticky header (tabs + filter chips) */}
-      <div className="h-[76px] shrink-0 w-full pointer-events-none" />
+      {showHeaderSpacer && <div className="h-[76px] shrink-0 w-full pointer-events-none" />}
 
       {/* Main video container */}
       <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
         <div className="relative w-full aspect-[16/9] max-h-[calc(100dvh-110px)] mx-auto rounded-none overflow-hidden">
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            className="w-full h-full object-cover"
-          />
+          {video.videoUrl ? (
+            <video
+              src={video.videoUrl}
+              poster={video.thumbnail || undefined}
+              controls
+              autoPlay
+              playsInline
+              preload="metadata"
+              className="w-full h-full bg-black object-contain"
+            />
+          ) : (
+            <img
+              src={video.thumbnail}
+              alt={video.title}
+              className="w-full h-full object-cover"
+            />
+          )}
 
           {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70" />
-          <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70" />
+          <div className="pointer-events-none absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
 
           {/* Play button (centered) */}
-          <div className="absolute inset-0 flex items-center justify-center">
+          {!video.videoUrl && <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 cursor-pointer hover:bg-white/30 transition-colors">
               <i className="ri-play-fill text-white text-2xl ml-1" />
             </div>
-          </div>
+          </div>}
 
           {/* Right side actions */}
           <div className="absolute right-2.5 bottom-24 flex flex-col items-center gap-4 z-10">
@@ -110,23 +129,35 @@ export default function ReelsItem({ video }: ReelsItemProps) {
 
             {/* Spinning disc (music/avatar) */}
             <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/40 mt-1 animate-[spin_8s_linear_infinite]">
-              <img
-                src={video.avatar}
-                alt=""
-                className="w-full h-full object-cover"
-              />
+              {video.avatar ? (
+                <img
+                  src={video.avatar}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-[#27272a]">
+                  <i className="ri-user-line text-white/80 text-sm" />
+                </div>
+              )}
             </div>
           </div>
 
           {/* Bottom info */}
-          <div className="absolute bottom-0 left-0 right-14 p-3 pb-8 z-10">
+          <div className="pointer-events-none absolute bottom-0 left-0 right-14 p-3 pb-8 z-10">
             {/* Uploader */}
             <div className="flex items-center gap-2 mb-2">
-              <img
-                src={video.avatar}
-                alt={video.uploader}
-                className="w-8 h-8 rounded-full object-cover border border-white/30"
-              />
+              {video.avatar ? (
+                <img
+                  src={video.avatar}
+                  alt={video.uploader}
+                  className="w-8 h-8 rounded-full object-cover border border-white/30"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-[#27272a]">
+                  <i className="ri-user-line text-white/80 text-sm" />
+                </div>
+              )}
               <span className="text-white text-[13px] font-bold drop-shadow-lg tracking-tight">
                 {video.uploader}
               </span>
@@ -161,12 +192,12 @@ export default function ReelsItem({ video }: ReelsItemProps) {
           </div>
 
           {/* Duration badge */}
-          <div className="absolute top-3 right-2.5 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium z-10">
+          <div className="pointer-events-none absolute top-3 right-2.5 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium z-10">
             {video.duration}
           </div>
 
           {/* Game name badge */}
-          <div className="absolute top-3 left-2.5 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 z-10">
+          <div className="pointer-events-none absolute top-3 left-2.5 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 z-10">
             <span className="text-white text-[11px] font-semibold">{video.gameName}</span>
           </div>
         </div>
@@ -185,8 +216,8 @@ export default function ReelsItem({ video }: ReelsItemProps) {
         isOpen={isMoreOpen}
         onClose={() => setIsMoreOpen(false)}
         onReport={() => setIsReportOpen(true)}
-        onEdit={() => openAuth("edit")}
-        onDelete={() => openAuth("delete")}
+        onEdit={() => setIsEditOpen(true)}
+        onDelete={() => setIsDeleteOpen(true)}
       />
 
       {/* Report Popup */}
@@ -199,22 +230,23 @@ export default function ReelsItem({ video }: ReelsItemProps) {
       <EditPopup
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        video={{ title: video.title, gameName: video.gameName, tags: video.tags }}
+        onUpdated={handleUpdated}
+        video={{
+          id: video.id,
+          title: video.title,
+          gameName: video.gameName,
+          gameTag: video.gameTag,
+          uploader: video.uploader,
+        }}
       />
 
       {/* Delete Popup */}
       <DeletePopup
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
+        onDeleted={() => onDeleted?.(video.id)}
+        videoId={video.id}
         videoTitle={video.title}
-      />
-
-      {/* Auth Popup */}
-      <AuthPopup
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onSuccess={handleAuthSuccess}
-        actionLabel={authTarget === "edit" ? "편집" : "삭제"}
       />
     </div>
   );
