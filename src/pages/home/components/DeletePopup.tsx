@@ -59,6 +59,7 @@ export default function DeletePopup({ isOpen, onClose, onDeleted, videoId, video
     try {
       const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos/${videoId}`, {
         method: "DELETE",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });

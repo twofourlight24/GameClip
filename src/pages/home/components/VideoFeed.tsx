@@ -4,25 +4,18 @@ import { videos } from "@/mocks/videos";
 
 export default function VideoFeed() {
   const [activeTab, setActiveTab] = useState<"for-you" | "following">("for-you");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedGameName, setSelectedGameName] = useState<string | null>(null);
 
-  // Extract unique game tags from videos
-  const gameTags = useMemo(() => {
-    const tags = [...new Set(videos.map((v) => v.gameTag))];
-    return tags;
+  // Extract unique game names from videos
+  const gameNames = useMemo(() => {
+    return [...new Set(videos.map((video) => video.gameName))];
   }, []);
 
-  // Get game name by tag
-  const getGameName = (tag: string) => {
-    const video = videos.find((v) => v.gameTag === tag);
-    return video?.gameName || tag;
-  };
-
-  // Filter videos by selected tag
+  // Filter videos by selected game name
   const filteredVideos = useMemo(() => {
-    if (!selectedTag) return videos;
-    return videos.filter((v) => v.gameTag === selectedTag);
-  }, [selectedTag]);
+    if (!selectedGameName) return videos;
+    return videos.filter((video) => video.gameName === selectedGameName);
+  }, [selectedGameName]);
 
   return (
     <div className="flex-1 min-w-0">
@@ -50,29 +43,29 @@ export default function VideoFeed() {
         </button>
       </div>
 
-      {/* Game Tag Filter Chips */}
+      {/* Game Name Filter Chips */}
       <div className="flex flex-wrap gap-2 mb-6">
         <button
-          onClick={() => setSelectedTag(null)}
+          onClick={() => setSelectedGameName(null)}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
-            selectedTag === null
+            selectedGameName === null
               ? "bg-sky-500/20 border-sky-500/50 text-sky-300"
               : "bg-[#27272a] border-[#3f3f46] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
           }`}
         >
           전체
         </button>
-        {gameTags.map((tag) => (
+        {gameNames.map((gameName) => (
           <button
-            key={tag}
-            onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
+            key={gameName}
+            onClick={() => setSelectedGameName(gameName === selectedGameName ? null : gameName)}
             className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
-              selectedTag === tag
+              selectedGameName === gameName
                 ? "bg-sky-500/20 border-sky-500/50 text-sky-300"
                 : "bg-[#27272a] border-[#3f3f46] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
             }`}
           >
-            #{getGameName(tag)}
+            #{gameName}
           </button>
         ))}
       </div>

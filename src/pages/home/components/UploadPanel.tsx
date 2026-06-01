@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { gameGenres } from "@/mocks/games";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { gameGenres, trendingGames } from "@/mocks/games";
 
 const apiPort = "4000";
 const defaultApiBaseUrl =
@@ -17,14 +17,25 @@ export default function UploadPanel() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [gameName, setGameName] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [customGenre, setCustomGenre] = useState("");
+  const [isCustomGenreOpen, setIsCustomGenreOpen] = useState(false);
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadError, setUploadError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const canUpload = Boolean(selectedFile && title && gameName && selectedGenre && nickname && !isUploading);
+  const filteredGames = useMemo(() => {
+    const query = gameName.trim().toLowerCase();
+    if (!query) return trendingGames;
+    return trendingGames.filter((game) => game.name.toLowerCase().includes(query));
+  }, [gameName]);
+  const selectedGenreNames = selectedGenres
+    .map((genreId) => gameGenres.find((genre) => genre.id === genreId)?.name || genreId)
+    .filter(Boolean);
+  const uploadGenreTags = [...selectedGenreNames, customGenre.trim()].filter(Boolean);
+  const canUpload = Boolean(selectedFile && title && gameName && uploadGenreTags.length > 0 && nickname && !isUploading);
 
   const setFile = (file: File) => {
     setUploadMessage("");
@@ -70,7 +81,7 @@ export default function UploadPanel() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !title || !gameName || !selectedGenre || !nickname) return;
+    if (!selectedFile || !title || !gameName || uploadGenreTags.length === 0 || !nickname) return;
 
     setIsUploading(true);
     setUploadMessage("");
@@ -80,7 +91,7 @@ export default function UploadPanel() {
     body.append("video", selectedFile);
     body.append("title", title);
     body.append("gameName", gameName);
-    body.append("gameTag", selectedGenre);
+    body.append("genreTags", JSON.stringify(uploadGenreTags));
     body.append("uploader", nickname);
     if (password.trim()) {
       body.append("password", password);
@@ -104,7 +115,9 @@ export default function UploadPanel() {
       }
       setTitle("");
       setGameName("");
-      setSelectedGenre(null);
+      setSelectedGenres([]);
+      setCustomGenre("");
+      setIsCustomGenreOpen(false);
       setNickname("");
       setPassword("");
       window.dispatchEvent(new Event("gameclip:videos-changed"));
@@ -174,10 +187,32 @@ export default function UploadPanel() {
           type="text"
           value={gameName}
           onChange={(e) => setGameName(e.target.value)}
-          placeholder="예: 리그 오브 레전드"
+          placeholder="게임 검색 또는 직접 입력"
           disabled={isUploading}
           className="w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
         />
+        <div className="mt-2 grid max-h-32 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-white/10 bg-[#202024] p-2 scrollbar-hide">
+          {filteredGames.map((game) => (
+            <button
+              key={game.id}
+              type="button"
+              disabled={isUploading}
+              onClick={() => {
+                setGameName(game.name);
+                setSelectedGenres(game.genreIds);
+              }}
+              className={`flex min-w-0 items-center gap-2 rounded-lg border px-2 py-2 text-left text-xs font-semibold transition-all ${
+                gameName === game.name
+                  ? "border-transparent text-white shadow-lg"
+                  : "border-[#3f3f46] bg-[#18181b] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
+              }`}
+              style={gameName === game.name ? { backgroundColor: game.color } : undefined}
+            >
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: game.color }} />
+              <span className="truncate">{game.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Genre tags */}
@@ -185,25 +220,60 @@ export default function UploadPanel() {
         <label className="block text-xs text-[#a1a1aa] mb-2 font-medium">
           장르 태그
         </label>
-        <div className="flex flex-wrap gap-2">
-          {gameGenres.map((genre) => (
+        <div className="max-h-24 overflow-y-auto rounded-xl border border-white/10 bg-[#202024] p-2 scrollbar-hide">
+          <div className="flex flex-wrap gap-2">
+            {gameGenres.map((genre) => (
+              <button
+                key={genre.id}
+                type="button"
+                disabled={isUploading}
+                onClick={() => {
+                  setSelectedGenres((currentGenres) =>
+                    currentGenres.includes(genre.id)
+                      ? currentGenres.filter((genreId) => genreId !== genre.id)
+                      : [...currentGenres, genre.id],
+                  );
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap ${
+                  selectedGenres.includes(genre.id)
+                    ? "border-transparent text-white shadow-lg"
+                    : "bg-[#18181b] border-[#3f3f46] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
+                }`}
+                style={selectedGenres.includes(genre.id) ? { backgroundColor: genre.color } : undefined}
+              >
+                {genre.name}
+              </button>
+            ))}
             <button
-              key={genre.id}
               type="button"
               disabled={isUploading}
-              onClick={() =>
-                setSelectedGenre(genre.id === selectedGenre ? null : genre.id)
-              }
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap ${
-                selectedGenre === genre.id
-                  ? "bg-sky-500/90 border-sky-400 text-white shadow-lg shadow-sky-500/20"
-                  : "bg-[#18181b] border-[#3f3f46] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
+              onClick={() => {
+                if (isCustomGenreOpen) {
+                  setCustomGenre("");
+                }
+                setIsCustomGenreOpen((isOpen) => !isOpen);
+              }}
+              aria-label="장르 태그 직접 입력"
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border text-sm transition-all ${
+                isCustomGenreOpen
+                  ? "border-sky-400 bg-sky-500/90 text-white shadow-lg shadow-sky-500/20"
+                  : "border-[#3f3f46] bg-[#18181b] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
               }`}
             >
-              {genre.name}
+              <i className="ri-add-line" />
             </button>
-          ))}
+          </div>
         </div>
+        {isCustomGenreOpen && (
+          <input
+            type="text"
+            value={customGenre}
+            onChange={(e) => setCustomGenre(e.target.value)}
+            placeholder="장르 태그를 직접 입력하세요"
+            disabled={isUploading}
+            className="mt-2 w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
+          />
+        )}
       </div>
 
       {/* Nickname */}

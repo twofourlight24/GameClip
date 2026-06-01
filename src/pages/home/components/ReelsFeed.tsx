@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ReelsItem from "./ReelsItem";
 import PhotoGrid from "./PhotoGrid";
@@ -14,22 +14,30 @@ type UploadedVideo = {
   title?: string;
   originalName?: string;
   gameName?: string;
-  gameTag?: string;
+  genreTag?: string;
+  genreTags?: string[];
   uploader?: string;
+  avatarUrl?: string | null;
   size?: number;
   videoUrl: string;
+  likes?: number;
+  likedByMe?: boolean;
+  comments?: number;
 };
 
 interface ReelsFeedProps {
-  selectedTag?: string | null;
-  onTagChange?: (tag: string | null) => void;
+  selectedGameName?: string | null;
+  onGameNameChange?: (gameName: string | null) => void;
+  homeResetKey?: number;
 }
 
-export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onTagChange }: ReelsFeedProps) {
+export default function ReelsFeed({ selectedGameName, onGameNameChange: _onGameNameChange, homeResetKey = 0 }: ReelsFeedProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const feedRef = useRef<HTMLDivElement>(null);
+  const didMountRef = useRef(false);
 
   const loadVideos = useCallback(async (options?: { signal?: AbortSignal; showLoading?: boolean }) => {
     const showLoading = options?.showLoading ?? false;
@@ -42,6 +50,7 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
     try {
       const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos`, {
         signal: options?.signal,
+        credentials: "include",
       });
       const payload = (await readPayload(response)) as UploadedVideo[] | { message?: string };
 
@@ -74,7 +83,11 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
     };
 
     window.addEventListener("gameclip:videos-changed", handleVideosChanged);
-    return () => window.removeEventListener("gameclip:videos-changed", handleVideosChanged);
+    window.addEventListener("gameclip:auth-changed", handleVideosChanged);
+    return () => {
+      window.removeEventListener("gameclip:videos-changed", handleVideosChanged);
+      window.removeEventListener("gameclip:auth-changed", handleVideosChanged);
+    };
   }, [loadVideos]);
 
   const handleVideoUpdated = (updatedVideo: Video) => {
@@ -88,6 +101,21 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
     setVideos((currentVideos) => currentVideos.filter((video) => video.id !== videoId));
     setActiveVideo(null);
   };
+
+  const filteredVideos = useMemo(() => {
+    if (!selectedGameName) return videos;
+    return videos.filter((video) => video.gameName === selectedGameName);
+  }, [selectedGameName, videos]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    setActiveVideo(null);
+    feedRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [homeResetKey]);
 
   if (activeVideo) {
     return createPortal(
@@ -116,7 +144,7 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
   }
 
   return (
-    <div className="relative h-full overflow-y-auto scrollbar-hide">
+    <div ref={feedRef} className="relative h-full overflow-y-auto scrollbar-hide">
       {/* Top overlay tabs */}
       <div className="sticky top-0 z-50 flex items-center justify-center pt-3 pb-2 bg-gradient-to-b from-black/70 via-black/40 to-transparent">
         <span className="text-[14px] font-bold text-white transition-all duration-200">
@@ -139,17 +167,19 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
         </div>
       )}
 
-      {!isLoading && !errorMessage && videos.length > 0 && (
+      {!isLoading && !errorMessage && filteredVideos.length > 0 && (
         <PhotoGrid
-          videos={videos}
+          videos={filteredVideos}
           onVideoClick={(video) => setActiveVideo(video)}
         />
       )}
 
-      {!isLoading && !errorMessage && videos.length === 0 && (
+      {!isLoading && !errorMessage && filteredVideos.length === 0 && (
         <div className="flex h-[calc(100%-48px)] flex-col items-center justify-center text-[#a1a1aa]">
           <i className="ri-film-line mb-4 text-5xl text-[#52525b]" />
-          <p className="text-base font-medium">아직 업로드된 영상이 없습니다</p>
+          <p className="text-base font-medium">
+            {selectedGameName ? "선택한 게임의 영상이 없습니다" : "아직 업로드된 영상이 없습니다"}
+          </p>
         </div>
       )}
     </div>
@@ -158,22 +188,25 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
 
 function toFeedVideo(video: UploadedVideo): Video {
   const gameName = video.gameName || "게임 미지정";
-  const gameTag = video.gameTag || "untagged";
+  const genreTags = Array.isArray(video.genreTags)
+    ? video.genreTags
+    : [video.genreTag].filter(Boolean);
 
   return {
     id: video.id,
     title: video.title || video.originalName || "제목 없는 영상",
     gameName,
-    gameTag,
+    genreTags,
     thumbnail: "",
     videoUrl: video.videoUrl,
     views: "0",
     duration: "재생",
     uploader: video.uploader || "익명",
-    avatar: "",
-    likes: 0,
-    comments: 0,
-    tags: [gameName, gameTag].filter(Boolean),
+    avatar: video.avatarUrl || "",
+    likes: video.likes ?? 0,
+    likedByMe: video.likedByMe ?? false,
+    comments: video.comments ?? 0,
+    tags: [gameName, ...genreTags].filter(Boolean),
   };
 }
 
