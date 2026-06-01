@@ -73,6 +73,7 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
     try {
       const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos/${video.id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,

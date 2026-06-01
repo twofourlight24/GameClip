@@ -12,13 +12,21 @@ type UploadResponse = {
   message?: string;
 };
 
+type UploadUser = {
+  id: string;
+  username: string;
+  nickname: string;
+  avatarUrl: string | null;
+};
+
 interface UploadPopupProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadSuccess?: () => void;
+  currentUser?: UploadUser | null;
 }
 
-export default function UploadPopup({ isOpen, onClose, onUploadSuccess }: UploadPopupProps) {
+export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentUser = null }: UploadPopupProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -26,10 +34,12 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess }: Upload
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const canUpload = Boolean(selectedFile && title && gameName && selectedGenre && nickname && !isUploading);
+  const needsManualIdentity = !currentUser || isAnonymous;
+  const canUpload = Boolean(selectedFile && title && gameName && selectedGenre && (!needsManualIdentity || nickname) && !isUploading);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -57,6 +67,7 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess }: Upload
     setSelectedGenre(null);
     setNickname("");
     setPassword("");
+    setIsAnonymous(false);
     setIsUploading(false);
     setUploadError("");
     if (inputRef.current) {
@@ -102,7 +113,7 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess }: Upload
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !title || !gameName || !selectedGenre || !nickname) return;
+    if (!selectedFile || !title || !gameName || !selectedGenre || (needsManualIdentity && !nickname)) return;
 
     setIsUploading(true);
     setUploadError("");
@@ -112,14 +123,20 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess }: Upload
     body.append("title", title);
     body.append("gameName", gameName);
     body.append("gameTag", selectedGenre);
-    body.append("uploader", nickname);
-    if (password.trim()) {
+    if (isAnonymous) {
+      body.append("isAnonymous", "true");
+    }
+    if (needsManualIdentity) {
+      body.append("uploader", nickname);
+    }
+    if (needsManualIdentity && password.trim()) {
       body.append("password", password);
     }
 
     try {
       const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos`, {
         method: "POST",
+        credentials: "include",
         body,
       });
       const payload = (await readPayload(response)) as UploadResponse;
@@ -255,34 +272,95 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess }: Upload
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
-              닉네임
-            </label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
-              placeholder="업로드에 표시될 닉네임"
-              disabled={isUploading}
-              className="w-full bg-[#27272a] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
-            />
-          </div>
+          {currentUser ? (
+            <div className="rounded-xl border border-white/10 bg-[#27272a] px-3 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#18181b]">
+                  {currentUser.avatarUrl ? (
+                    <img src={currentUser.avatarUrl} alt={currentUser.nickname} className="h-full w-full object-cover" />
+                  ) : (
+                    <i className="ri-user-line text-white/80" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">{currentUser.nickname}</p>
+                  <p className="truncate text-xs text-[#a1a1aa]">@{currentUser.username} 계정으로 업로드</p>
+                </div>
+              </div>
+              <label className="mt-3 flex items-center gap-2 text-xs font-medium text-[#a1a1aa]">
+                <input
+                  type="checkbox"
+                  checked={isAnonymous}
+                  onChange={(event) => setIsAnonymous(event.target.checked)}
+                  disabled={isUploading}
+                  className="h-4 w-4 accent-sky-500"
+                />
+                익명으로 업로드
+              </label>
+              {isAnonymous && (
+                <div className="mt-3 grid gap-3">
+                  <div>
+                    <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
+                      익명 닉네임
+                    </label>
+                    <input
+                      type="text"
+                      value={nickname}
+                      onChange={(event) => setNickname(event.target.value)}
+                      placeholder="익명 업로드에 표시될 닉네임"
+                      disabled={isUploading}
+                      className="w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
+                      익명 영상 비밀번호 (선택)
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="익명 영상 수정/삭제 보호가 필요하면 입력"
+                      autoComplete="new-password"
+                      disabled={isUploading}
+                      className="w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
+                  닉네임
+                </label>
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={(event) => setNickname(event.target.value)}
+                  placeholder="업로드에 표시될 닉네임"
+                  disabled={isUploading}
+                  className="w-full bg-[#27272a] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
-              비밀번호 (선택)
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="수정/삭제 보호가 필요하면 입력"
-              autoComplete="new-password"
-              disabled={isUploading}
-              className="w-full bg-[#27272a] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
-            />
-          </div>
+              <div>
+                <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
+                  비밀번호 (선택)
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="수정/삭제 보호가 필요하면 입력"
+                  autoComplete="new-password"
+                  disabled={isUploading}
+                  className="w-full bg-[#27272a] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
+                />
+              </div>
+            </>
+          )}
 
           {uploadError && (
             <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-200">

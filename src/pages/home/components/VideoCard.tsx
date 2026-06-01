@@ -78,11 +78,19 @@ export default function VideoCard({ video }: VideoCardProps) {
         )}
         
         <div className="flex items-center gap-3">
-          <img
-            src={video.avatar}
-            alt={video.uploader}
-            className="w-7 h-7 rounded-full object-cover border border-white/30"
-          />
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-[#27272a]">
+            <i className="ri-user-line text-sm text-white/80" />
+            {video.avatar ? (
+              <img
+                src={video.avatar}
+                alt={video.uploader}
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+                className="absolute h-7 w-7 rounded-full object-cover"
+              />
+            ) : null}
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-gray-300 text-xs font-medium truncate">{video.uploader}</p>
           </div>

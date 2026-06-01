@@ -600,17 +600,19 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
           <div className={`pointer-events-none absolute left-0 right-14 p-3 pb-8 z-10 transition-[bottom,opacity] duration-300 ${video.videoUrl && videoUiVisible ? "bottom-16" : "bottom-0"} ${videoUiVisible ? "opacity-100" : "opacity-0"}`}>
             {/* Uploader */}
             <div className="flex items-center gap-2 mb-2">
-              {video.avatar ? (
-                <img
-                  src={video.avatar}
-                  alt={video.uploader}
-                  className="w-8 h-8 rounded-full object-cover border border-white/30"
-                />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-[#27272a]">
-                  <i className="ri-user-line text-white/80 text-sm" />
-                </div>
-              )}
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-[#27272a]">
+                <i className="ri-user-line text-white/80 text-sm" />
+                {video.avatar ? (
+                  <img
+                    src={video.avatar}
+                    alt={video.uploader}
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                    className="absolute h-8 w-8 rounded-full object-cover"
+                  />
+                ) : null}
+              </div>
               <span className="text-white text-[13px] font-bold drop-shadow-lg tracking-tight">
                 {video.uploader}
               </span>

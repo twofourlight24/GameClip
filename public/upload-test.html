@@ -101,6 +101,79 @@
         padding: 9px;
       }
 
+      input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        min-width: 16px;
+        padding: 0;
+      }
+
+      .checkbox-label {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+      }
+
+      .avatar-row {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+      }
+
+      .avatar-preview {
+        width: 64px;
+        height: 64px;
+        border: 1px solid #35415c;
+        border-radius: 50%;
+        background: #090c13;
+        overflow: hidden;
+      }
+
+      #avatarPreview {
+        display: none;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      #defaultAvatar {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        background: #27272a;
+      }
+
+      .default-avatar-icon {
+        position: relative;
+        width: 30px;
+        height: 30px;
+      }
+
+      .default-avatar-icon::before,
+      .default-avatar-icon::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgb(255 255 255 / 80%);
+      }
+
+      .default-avatar-icon::before {
+        top: 4px;
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+      }
+
+      .default-avatar-icon::after {
+        bottom: 3px;
+        width: 22px;
+        height: 13px;
+        border-radius: 999px 999px 8px 8px;
+      }
+
       .actions {
         display: flex;
         flex-wrap: wrap;
@@ -207,6 +280,29 @@
 
       <div class="grid">
         <section class="panel stack">
+          <h2>Signup API</h2>
+          <form id="signupForm">
+            <label>
+              ID
+              <input name="username" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_-]{3,30}" placeholder="gameclip_user" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
+            </label>
+            <label>
+              Password confirm
+              <input name="passwordConfirm" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
+            </label>
+            <label>
+              Nickname
+              <input name="nickname" autocomplete="nickname" maxlength="30" placeholder="클립장인" required />
+            </label>
+            <div class="actions">
+              <button id="signupButton">Create account</button>
+            </div>
+          </form>
+
           <h2>Upload API</h2>
           <label>
             API base URL
@@ -237,6 +333,10 @@
               Uploader
               <input name="uploader" value="Presenter" />
             </label>
+            <label class="checkbox-label">
+              <input name="isAnonymous" type="checkbox" value="true" />
+              Upload anonymously
+            </label>
             <label>
               Password (optional)
               <input name="password" type="password" autocomplete="new-password" placeholder="Set this to protect edits and deletion" />
@@ -259,12 +359,14 @@
 
     <script>
       const apiInput = document.querySelector("#apiBaseUrl");
+      const signupForm = document.querySelector("#signupForm");
       const form = document.querySelector("#uploadForm");
       const status = document.querySelector("#status");
       const player = document.querySelector("#player");
       const playerTitle = document.querySelector("#playerTitle");
       const videos = document.querySelector("#videos");
       const summary = document.querySelector("#summary");
+      const signupButton = document.querySelector("#signupButton");
       const uploadButton = document.querySelector("#uploadButton");
       const refreshButton = document.querySelector("#refreshButton");
       const apiPort = "4000";
@@ -275,10 +377,41 @@
       apiInput.addEventListener("change", () => {
         apiInput.value = cleanApiBaseUrl();
       });
+      signupForm.addEventListener("submit", signup);
       refreshButton.addEventListener("click", refreshVideos);
       form.addEventListener("submit", uploadVideo);
 
       refreshVideos();
+
+      async function signup(event) {
+        event.preventDefault();
+
+        const body = new FormData(signupForm);
+        setBusy(true);
+        writeStatus("Creating account...");
+
+        try {
+          const response = await fetch(`${cleanApiBaseUrl()}/api/signup`, {
+            method: "POST",
+            body,
+          });
+          const payload = await readPayload(response);
+
+          if (!response.ok) {
+            throw new Error(payload.message || `Signup failed with ${response.status}.`);
+          }
+
+          writeStatus(
+            `Created ${payload.nickname} (@${payload.username}).` +
+              "\n프로필 사진은 로그인 후 계정 수정에서 설정합니다.",
+          );
+          signupForm.reset();
+        } catch (error) {
+          writeStatus(error.message, true);
+        } finally {
+          setBusy(false);
+        }
+      }
 
       async function uploadVideo(event) {
         event.preventDefault();
@@ -491,6 +624,7 @@
       }
 
       function setBusy(busy) {
+        signupButton.disabled = busy;
         uploadButton.disabled = busy;
         refreshButton.disabled = busy;
       }

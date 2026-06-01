@@ -16,6 +16,7 @@ type UploadedVideo = {
   gameName?: string;
   gameTag?: string;
   uploader?: string;
+  avatarUrl?: string | null;
   size?: number;
   videoUrl: string;
 };
@@ -190,7 +191,7 @@ function toFeedVideo(video: UploadedVideo): Video {
     views: "0",
     duration: "재생",
     uploader: video.uploader || "익명",
-    avatar: "",
+    avatar: video.avatarUrl || "",
     likes: 0,
     comments: 0,
     tags: [gameName, gameTag].filter(Boolean),
