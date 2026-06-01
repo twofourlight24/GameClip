@@ -76,10 +76,6 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
             />
           )}
 
-          {/* Gradient overlays */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70" />
-          <div className="pointer-events-none absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
-
           {/* Play button (centered) */}
           {!video.videoUrl && <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 cursor-pointer hover:bg-white/30 transition-colors">
@@ -94,12 +90,12 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
               onClick={() => setLiked(!liked)}
               className="flex flex-col items-center gap-0.5 group"
             >
-              <div className="w-9 h-9 flex items-center justify-center active:scale-90 transition-transform">
+              <div className="w-11 h-11 flex items-center justify-center active:scale-90 transition-transform">
                 <i
-                  className={`${liked ? "ri-heart-3-fill text-red-500" : "ri-heart-3-line text-white"} text-[22px] drop-shadow-lg transition-colors`}
+                  className={`${liked ? "ri-heart-3-fill text-red-500" : "ri-heart-3-line text-white"} text-[26px] drop-shadow-lg transition-colors`}
                 />
               </div>
-              <span className="text-white text-[11px] font-semibold drop-shadow-lg">
+              <span className="text-white text-xs font-semibold drop-shadow-lg">
                 {(video.likes / 1000).toFixed(1)}k
               </span>
             </button>
@@ -109,10 +105,10 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
               onClick={() => setIsCommentOpen(true)}
               className="flex flex-col items-center gap-0.5 group"
             >
-              <div className="w-9 h-9 flex items-center justify-center active:scale-90 transition-transform">
-                <i className="ri-chat-1-line text-white text-[20px] drop-shadow-lg" />
+              <div className="w-11 h-11 flex items-center justify-center active:scale-90 transition-transform">
+                <i className="ri-chat-1-line text-white text-[24px] drop-shadow-lg" />
               </div>
-              <span className="text-white text-[11px] font-semibold drop-shadow-lg">
+              <span className="text-white text-xs font-semibold drop-shadow-lg">
                 {(video.comments / 1000).toFixed(1)}k
               </span>
             </button>
@@ -122,13 +118,13 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
               onClick={() => setIsMoreOpen(true)}
               className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
             >
-              <div className="w-9 h-9 flex items-center justify-center">
-                <i className="ri-more-fill text-white text-[20px] drop-shadow-lg rotate-90" />
+              <div className="w-11 h-11 flex items-center justify-center">
+                <i className="ri-more-fill text-white text-[24px] drop-shadow-lg rotate-90" />
               </div>
             </button>
 
             {/* Spinning disc (music/avatar) */}
-            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/40 mt-1 animate-[spin_8s_linear_infinite]">
+            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white/40 mt-1 animate-[spin_8s_linear_infinite]">
               {video.avatar ? (
                 <img
                   src={video.avatar}
