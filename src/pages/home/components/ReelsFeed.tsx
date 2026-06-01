@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ReelsItem from "./ReelsItem";
 import PhotoGrid from "./PhotoGrid";
@@ -23,13 +23,16 @@ type UploadedVideo = {
 interface ReelsFeedProps {
   selectedTag?: string | null;
   onTagChange?: (tag: string | null) => void;
+  homeResetKey?: number;
 }
 
-export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onTagChange }: ReelsFeedProps) {
+export default function ReelsFeed({ selectedTag, onTagChange: _onTagChange, homeResetKey = 0 }: ReelsFeedProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const feedRef = useRef<HTMLDivElement>(null);
+  const didMountRef = useRef(false);
 
   const loadVideos = useCallback(async (options?: { signal?: AbortSignal; showLoading?: boolean }) => {
     const showLoading = options?.showLoading ?? false;
@@ -89,6 +92,21 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
     setActiveVideo(null);
   };
 
+  const filteredVideos = useMemo(() => {
+    if (!selectedTag) return videos;
+    return videos.filter((video) => video.gameTag === selectedTag || video.tags?.includes(selectedTag));
+  }, [selectedTag, videos]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    setActiveVideo(null);
+    feedRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [homeResetKey]);
+
   if (activeVideo) {
     return createPortal(
       <div
@@ -116,7 +134,7 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
   }
 
   return (
-    <div className="relative h-full overflow-y-auto scrollbar-hide">
+    <div ref={feedRef} className="relative h-full overflow-y-auto scrollbar-hide">
       {/* Top overlay tabs */}
       <div className="sticky top-0 z-50 flex items-center justify-center pt-3 pb-2 bg-gradient-to-b from-black/70 via-black/40 to-transparent">
         <span className="text-[14px] font-bold text-white transition-all duration-200">
@@ -139,17 +157,19 @@ export default function ReelsFeed({ selectedTag: _selectedTag, onTagChange: _onT
         </div>
       )}
 
-      {!isLoading && !errorMessage && videos.length > 0 && (
+      {!isLoading && !errorMessage && filteredVideos.length > 0 && (
         <PhotoGrid
-          videos={videos}
+          videos={filteredVideos}
           onVideoClick={(video) => setActiveVideo(video)}
         />
       )}
 
-      {!isLoading && !errorMessage && videos.length === 0 && (
+      {!isLoading && !errorMessage && filteredVideos.length === 0 && (
         <div className="flex h-[calc(100%-48px)] flex-col items-center justify-center text-[#a1a1aa]">
           <i className="ri-film-line mb-4 text-5xl text-[#52525b]" />
-          <p className="text-base font-medium">아직 업로드된 영상이 없습니다</p>
+          <p className="text-base font-medium">
+            {selectedTag ? "선택한 게임의 영상이 없습니다" : "아직 업로드된 영상이 없습니다"}
+          </p>
         </div>
       )}
     </div>

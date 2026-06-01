@@ -1,5 +1,6 @@
 import { useState } from "react";
 import NotificationPopup from "./NotificationPopup";
+import UploadPopup from "./UploadPopup";
 
 const navItems = [
   { id: "home", label: "홈", icon: "ri-home-5-line", activeIcon: "ri-home-5-fill" },
@@ -8,19 +9,30 @@ const navItems = [
 ];
 
 interface LeftSidebarProps {
-  onUploadClick?: () => void;
-  showUploadPanel?: boolean;
+  onUploadSuccess?: () => void;
+  onHomeClick?: () => void;
 }
 
-export default function LeftSidebar({ onUploadClick, showUploadPanel }: LeftSidebarProps) {
+export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSidebarProps) {
   const [active, setActive] = useState("home");
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+
+  const goHome = () => {
+    setActive("home");
+    setIsNotificationOpen(false);
+    setIsUploadOpen(false);
+    onHomeClick?.();
+  };
 
   return (
     <>
       <aside className="fixed left-0 top-0 h-screen w-[72px] lg:w-[210px] bg-[#27272a] border-r border-[#3f3f46] z-40 flex flex-col py-6 transition-all duration-300">
         {/* Logo */}
-        <div className="px-4 lg:px-6 mb-8 flex items-center justify-center lg:justify-start">
+        <div
+          onClick={goHome}
+          className="px-4 lg:px-6 mb-8 flex items-center justify-center lg:justify-start cursor-pointer"
+        >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-cyan-400 flex items-center justify-center shrink-0">
             <i className="ri-gamepad-line text-white text-xl"></i>
           </div>
@@ -34,7 +46,7 @@ export default function LeftSidebar({ onUploadClick, showUploadPanel }: LeftSide
           {navItems.map((item) => {
             const isActive =
               item.id === "upload"
-                ? showUploadPanel
+                ? isUploadOpen
                 : item.id === "notifications"
                 ? isNotificationOpen
                 : active === item.id;
@@ -43,11 +55,11 @@ export default function LeftSidebar({ onUploadClick, showUploadPanel }: LeftSide
                 key={item.id}
                 onClick={() => {
                   if (item.id === "upload") {
-                    onUploadClick?.();
+                    setIsUploadOpen(true);
                   } else if (item.id === "notifications") {
                     setIsNotificationOpen(true);
                   } else {
-                    setActive(item.id);
+                    goHome();
                   }
                 }}
                 className={`
@@ -95,6 +107,13 @@ export default function LeftSidebar({ onUploadClick, showUploadPanel }: LeftSide
       <NotificationPopup
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
+      />
+
+      {/* Upload Popup */}
+      <UploadPopup
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onUploadSuccess={onUploadSuccess}
       />
     </>
   );
