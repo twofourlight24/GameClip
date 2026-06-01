@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { gameGenres } from "@/mocks/games";
+import { gameGenres, trendingGames } from "@/mocks/games";
 
 const apiPort = "4000";
 const defaultApiBaseUrl =
@@ -30,8 +30,8 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [gameName, setGameName] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -39,7 +39,15 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
   const [uploadError, setUploadError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const needsManualIdentity = !currentUser || isAnonymous;
-  const canUpload = Boolean(selectedFile && title && gameName && selectedGenre && (!needsManualIdentity || nickname) && !isUploading);
+  const selectedGameInfo = trendingGames.find((game) => game.tag === selectedGame);
+  const canUpload = Boolean(
+    selectedFile &&
+      title &&
+      selectedGenre &&
+      selectedGameInfo &&
+      (!needsManualIdentity || nickname) &&
+      !isUploading
+  );
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -63,8 +71,8 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
     setDragActive(false);
     setSelectedFile(null);
     setTitle("");
-    setGameName("");
     setSelectedGenre(null);
+    setSelectedGame(null);
     setNickname("");
     setPassword("");
     setIsAnonymous(false);
@@ -113,7 +121,7 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !title || !gameName || !selectedGenre || (needsManualIdentity && !nickname)) return;
+    if (!selectedFile || !title || !selectedGenre || !selectedGameInfo || (needsManualIdentity && !nickname)) return;
 
     setIsUploading(true);
     setUploadError("");
@@ -121,8 +129,9 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
     const body = new FormData();
     body.append("video", selectedFile);
     body.append("title", title);
-    body.append("gameName", gameName);
-    body.append("gameTag", selectedGenre);
+    body.append("gameName", selectedGameInfo.name);
+    body.append("gameTag", selectedGameInfo.tag);
+    body.append("genreTag", selectedGenre);
     if (isAnonymous) {
       body.append("isAnonymous", "true");
     }
@@ -236,20 +245,6 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
           </div>
 
           <div>
-            <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
-              게임 이름
-            </label>
-            <input
-              type="text"
-              value={gameName}
-              onChange={(event) => setGameName(event.target.value)}
-              placeholder="예: 리그 오브 레전드"
-              disabled={isUploading}
-              className="w-full bg-[#27272a] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
-            />
-          </div>
-
-          <div>
             <label className="block text-xs text-[#a1a1aa] mb-2 font-medium">
               장르 태그
             </label>
@@ -267,6 +262,37 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
                   }`}
                 >
                   {genre.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-[#a1a1aa] mb-2 font-medium">
+              게임 태그
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {trendingGames.map((game) => (
+                <button
+                  key={game.id}
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => {
+                    const nextGame = game.tag === selectedGame ? null : game.tag;
+                    setSelectedGame(nextGame);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap ${
+                    selectedGame === game.tag
+                      ? "border-transparent text-white shadow-lg"
+                      : "bg-[#27272a] border-[#3f3f46] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
+                  }`}
+                  style={
+                    selectedGame === game.tag
+                      ? { backgroundColor: game.color }
+                      : undefined
+                  }
+                >
+                  {game.name}
                 </button>
               ))}
             </div>

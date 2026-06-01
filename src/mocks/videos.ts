@@ -10,6 +10,7 @@ export interface Video {
   uploader: string;
   avatar: string;
   likes: number;
+  likedByMe?: boolean;
   comments: number;
   isHero?: boolean;
   tags?: string[];

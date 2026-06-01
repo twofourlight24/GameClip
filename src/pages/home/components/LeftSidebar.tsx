@@ -84,6 +84,7 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
     }).catch(() => undefined);
     setTestUser(null);
     setIsAccountOpen(false);
+    window.dispatchEvent(new Event("gameclip:auth-changed"));
   };
 
   return (
@@ -242,7 +243,10 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
         mode={authMode}
         onClose={() => setIsAuthOpen(false)}
         onModeChange={setAuthMode}
-        onAuthenticated={setTestUser}
+        onAuthenticated={(user) => {
+          setTestUser(user);
+          window.dispatchEvent(new Event("gameclip:auth-changed"));
+        }}
       />
 
       {testUser && (
@@ -251,7 +255,10 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
           user={testUser}
           onClose={() => setIsAccountOpen(false)}
           onUpdated={setTestUser}
-          onDeleted={() => setTestUser(null)}
+          onDeleted={() => {
+            setTestUser(null);
+            window.dispatchEvent(new Event("gameclip:auth-changed"));
+          }}
         />
       )}
     </>

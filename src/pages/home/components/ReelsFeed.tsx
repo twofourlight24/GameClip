@@ -19,6 +19,9 @@ type UploadedVideo = {
   avatarUrl?: string | null;
   size?: number;
   videoUrl: string;
+  likes?: number;
+  likedByMe?: boolean;
+  comments?: number;
 };
 
 interface ReelsFeedProps {
@@ -46,6 +49,7 @@ export default function ReelsFeed({ selectedTag, onTagChange: _onTagChange, home
     try {
       const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos`, {
         signal: options?.signal,
+        credentials: "include",
       });
       const payload = (await readPayload(response)) as UploadedVideo[] | { message?: string };
 
@@ -78,7 +82,11 @@ export default function ReelsFeed({ selectedTag, onTagChange: _onTagChange, home
     };
 
     window.addEventListener("gameclip:videos-changed", handleVideosChanged);
-    return () => window.removeEventListener("gameclip:videos-changed", handleVideosChanged);
+    window.addEventListener("gameclip:auth-changed", handleVideosChanged);
+    return () => {
+      window.removeEventListener("gameclip:videos-changed", handleVideosChanged);
+      window.removeEventListener("gameclip:auth-changed", handleVideosChanged);
+    };
   }, [loadVideos]);
 
   const handleVideoUpdated = (updatedVideo: Video) => {
@@ -192,8 +200,9 @@ function toFeedVideo(video: UploadedVideo): Video {
     duration: "재생",
     uploader: video.uploader || "익명",
     avatar: video.avatarUrl || "",
-    likes: 0,
-    comments: 0,
+    likes: video.likes ?? 0,
+    likedByMe: video.likedByMe ?? false,
+    comments: video.comments ?? 0,
     tags: [gameName, gameTag].filter(Boolean),
   };
 }

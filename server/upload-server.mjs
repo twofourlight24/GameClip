@@ -101,6 +101,66 @@ createServer(async (request, response) => {
       return;
     }
 
+    const likedVideoId = url.pathname.match(/^\/api\/videos\/([^/]+)\/like$/)?.[1];
+
+    if ((request.method === "POST" || request.method === "DELETE") && likedVideoId) {
+      const video = await setVideoLike(likedVideoId, request.method === "POST", request);
+      sendJson(response, 200, await publicVideo(video, request));
+      return;
+    }
+
+    const commentsVideoId = url.pathname.match(/^\/api\/videos\/([^/]+)\/comments$/)?.[1];
+
+    if (request.method === "GET" && commentsVideoId) {
+      sendJson(response, 200, await publicComments(commentsVideoId, request));
+      return;
+    }
+
+    if (request.method === "POST" && commentsVideoId) {
+      const video = await addVideoComment(commentsVideoId, await readJsonRequest(request), request);
+      sendJson(response, 201, {
+        video: await publicVideo(video, request),
+        comments: await publicComments(commentsVideoId, request),
+      });
+      return;
+    }
+
+    const commentMatch = url.pathname.match(/^\/api\/videos\/([^/]+)\/comments\/([^/]+)$/);
+
+    if (commentMatch) {
+      const [, commentVideoId, commentId] = commentMatch;
+
+      if (request.method === "PATCH") {
+        const video = await updateVideoComment(commentVideoId, commentId, await readJsonRequest(request), request);
+        sendJson(response, 200, {
+          video: await publicVideo(video, request),
+          comments: await publicComments(commentVideoId, request),
+        });
+        return;
+      }
+
+      if (request.method === "DELETE") {
+        const video = await deleteVideoComment(commentVideoId, commentId, await readJsonRequest(request), request);
+        sendJson(response, 200, {
+          video: await publicVideo(video, request),
+          comments: await publicComments(commentVideoId, request),
+        });
+        return;
+      }
+    }
+
+    const commentLikeMatch = url.pathname.match(/^\/api\/videos\/([^/]+)\/comments\/([^/]+)\/like$/);
+
+    if (commentLikeMatch && (request.method === "POST" || request.method === "DELETE")) {
+      const [, commentVideoId, commentId] = commentLikeMatch;
+      const video = await setVideoCommentLike(commentVideoId, commentId, request.method === "POST", request);
+      sendJson(response, 200, {
+        video: await publicVideo(video, request),
+        comments: await publicComments(commentVideoId, request),
+      });
+      return;
+    }
+
     const videoId = url.pathname.match(/^\/api\/videos\/([^/]+)$/)?.[1];
 
     if (request.method === "DELETE" && videoId) {
@@ -183,6 +243,8 @@ async function saveVideoUpload(request) {
     anonymousUploader: isAnonymous ? uploader : "",
     ownerUserId,
     passwordHash: ownerUserId ? null : passwordField(parts.fields.password),
+    likedUserIds: [],
+    comments: [],
     originalName: file.filename,
     contentType: file.contentType,
     size: file.data.length,
@@ -426,16 +488,30 @@ async function readUsers() {
 async function publicVideos(request) {
   const users = await readUsers();
   const usersById = new Map(users.map((user) => [user.id, user]));
-  return (await readVideos()).map((video) => toPublicVideo(video, request, usersById.get(video.ownerUserId)));
+  const currentUser = await readOptionalSessionUser(request);
+  return (await readVideos()).map((video) =>
+    toPublicVideo(video, request, usersById.get(video.ownerUserId), currentUser),
+  );
 }
 
 async function publicVideo(video, request) {
+  const currentUser = await readOptionalSessionUser(request);
+
   if (!video.ownerUserId) {
-    return toPublicVideo(video, request);
+    return toPublicVideo(video, request, null, currentUser);
   }
 
   const users = await readUsers();
-  return toPublicVideo(video, request, users.find((user) => user.id === video.ownerUserId));
+  return toPublicVideo(video, request, users.find((user) => user.id === video.ownerUserId), currentUser);
+}
+
+async function publicComments(videoId, request) {
+  const video = await findVideo(videoId);
+  const users = await readUsers();
+  const usersById = new Map(users.map((user) => [user.id, user]));
+  const currentUser = await readOptionalSessionUser(request);
+  const comments = Array.isArray(video.comments) ? video.comments : [];
+  return comments.map((comment) => toPublicComment(comment, request, usersById.get(comment.authorUserId), currentUser));
 }
 
 async function writeUsers(users) {
@@ -500,6 +576,120 @@ async function updateVideo(id, payload = {}, request) {
     }
   }
 
+  video.updatedAt = new Date().toISOString();
+  await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
+  return video;
+}
+
+async function addVideoComment(id, payload = {}, request) {
+  const sessionUser = await readOptionalSessionUser(request);
+  const isAnonymous = !sessionUser || booleanField(payload.isAnonymous);
+  const text = validateCommentText(payload.text);
+  const authorUserId = sessionUser && !isAnonymous ? sessionUser.id : null;
+  const authorName = authorUserId ? sessionUser.nickname : validateNickname(payload.nickname);
+  const passwordHash = authorUserId ? null : passwordField(payload.password);
+  const videos = await readVideos();
+  const video = videos.find((entry) => entry.id === id);
+
+  if (!video) {
+    throw httpError(404, "Video not found.");
+  }
+
+  const comments = Array.isArray(video.comments) ? video.comments : [];
+  comments.unshift({
+    id: randomUUID(),
+    text,
+    authorUserId,
+    authorName,
+    isAnonymous,
+    passwordHash,
+    likedUserIds: [],
+    createdAt: new Date().toISOString(),
+  });
+  video.comments = comments;
+  video.updatedAt = new Date().toISOString();
+  await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
+  return video;
+}
+
+async function updateVideoComment(videoId, commentId, payload = {}, request) {
+  const { videos, video, comment } = await findVideoAndComment(videoId, commentId);
+  await verifyCommentAccess(comment, payload.password, request);
+
+  comment.text = validateCommentText(payload.text);
+
+  comment.editedAt = new Date().toISOString();
+  video.updatedAt = new Date().toISOString();
+  await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
+  return video;
+}
+
+async function deleteVideoComment(videoId, commentId, payload = {}, request) {
+  const { videos, video, comment } = await findVideoAndComment(videoId, commentId);
+  await verifyCommentAccess(comment, payload.password, request);
+
+  video.comments = (Array.isArray(video.comments) ? video.comments : []).filter((entry) => entry.id !== commentId);
+  video.updatedAt = new Date().toISOString();
+  await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
+  return video;
+}
+
+async function setVideoCommentLike(videoId, commentId, shouldLike, request) {
+  const user = await requireSessionUser(request);
+  const { videos, video, comment } = await findVideoAndComment(videoId, commentId);
+  const likedUserIds = Array.isArray(comment.likedUserIds) ? comment.likedUserIds : [];
+
+  comment.likedUserIds = shouldLike
+    ? [...new Set([...likedUserIds, user.id])]
+    : likedUserIds.filter((userId) => userId !== user.id);
+  video.updatedAt = new Date().toISOString();
+  await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
+  return video;
+}
+
+async function findVideo(id) {
+  const video = (await readVideos()).find((entry) => entry.id === id);
+
+  if (!video) {
+    throw httpError(404, "Video not found.");
+  }
+
+  return video;
+}
+
+async function findVideoAndComment(videoId, commentId) {
+  const videos = await readVideos();
+  const video = videos.find((entry) => entry.id === videoId);
+
+  if (!video) {
+    throw httpError(404, "Video not found.");
+  }
+
+  const comments = Array.isArray(video.comments) ? video.comments : [];
+  const comment = comments.find((entry) => entry.id === commentId);
+
+  if (!comment) {
+    throw httpError(404, "Comment not found.");
+  }
+
+  return { videos, video, comment };
+}
+
+async function setVideoLike(id, shouldLike, request) {
+  const user = await requireSessionUser(request);
+  const videos = await readVideos();
+  const video = videos.find((entry) => entry.id === id);
+
+  if (!video) {
+    throw httpError(404, "Video not found.");
+  }
+
+  const likedUserIds = Array.isArray(video.likedUserIds) ? video.likedUserIds : [];
+  const nextLikedUserIds = shouldLike
+    ? [...new Set([...likedUserIds, user.id])]
+    : likedUserIds.filter((userId) => userId !== user.id);
+
+  video.likedUserIds = nextLikedUserIds;
   video.updatedAt = new Date().toISOString();
   await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
   return video;
@@ -621,7 +811,7 @@ function textField(value, fallback) {
 }
 
 function booleanField(value) {
-  return value === "true" || value === "1" || value === "on";
+  return value === true || value === "true" || value === "1" || value === "on";
 }
 
 function validateUsername(value) {
@@ -656,6 +846,16 @@ function validateNickname(value) {
   }
 
   return nickname;
+}
+
+function validateCommentText(value) {
+  const text = textField(value, "");
+
+  if (!text || text.length > 500) {
+    throw httpError(400, "Comment must be 1-500 characters.");
+  }
+
+  return text;
 }
 
 async function saveAvatarFile(userId, file) {
@@ -790,6 +990,34 @@ async function verifyVideoAccess(video, password, request) {
   verifyVideoPassword(video, password);
 }
 
+async function verifyCommentAccess(comment, password, request) {
+  if (comment.authorUserId) {
+    const user = await requireSessionUser(request);
+
+    if (user.id !== comment.authorUserId) {
+      throw httpError(403, "Only the comment author can change this comment.");
+    }
+
+    return;
+  }
+
+  verifyCommentPassword(comment, password);
+}
+
+function verifyCommentPassword(comment, password) {
+  if (!comment.passwordHash) {
+    return;
+  }
+
+  if (typeof password !== "string" || !password) {
+    throw httpError(401, "Password is required for this comment.");
+  }
+
+  if (!verifyPassword(password, comment.passwordHash)) {
+    throw httpError(403, "Password is incorrect.");
+  }
+}
+
 function verifyPassword(password, storedValue) {
   const [scheme, digest, iterationsText, salt, expectedHash] = String(storedValue).split(":");
   const iterations = Number(iterationsText);
@@ -910,11 +1138,13 @@ function clearSessionCookie(response) {
   response.setHeader("Set-Cookie", `${sessionCookieName}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
 }
 
-function toPublicVideo(video, request, owner = null) {
+function toPublicVideo(video, request, owner = null, currentUser = null) {
   const videoPath = video.videoPath || new URL(video.videoUrl).pathname;
   const { passwordHash, ...publicVideo } = video;
   const uploader = video.isAnonymous ? video.anonymousUploader || "익명" : publicVideo.uploader;
   const ownerAvatarUrl = owner ? getPublicAvatarUrl(owner, request) : null;
+  const likedUserIds = Array.isArray(video.likedUserIds) ? video.likedUserIds : [];
+  const comments = Array.isArray(video.comments) ? video.comments : [];
 
   return {
     ...publicVideo,
@@ -922,8 +1152,33 @@ function toPublicVideo(video, request, owner = null) {
     owner: owner && !video.isAnonymous ? toPublicUser(owner, request) : null,
     avatarUrl: video.isAnonymous ? null : ownerAvatarUrl,
     hasPassword: Boolean(passwordHash),
+    likes: likedUserIds.length,
+    likedByMe: currentUser ? likedUserIds.includes(currentUser.id) : false,
+    likedUserIds: undefined,
+    comments: comments.length,
     videoPath,
     videoUrl: `${getPublicOrigin(request)}${videoPath}`,
+  };
+}
+
+function toPublicComment(comment, request, author = null, currentUser = null) {
+  const authorName = comment.authorUserId && author && !comment.isAnonymous
+    ? author.nickname
+    : comment.authorName || "익명";
+  const likedUserIds = Array.isArray(comment.likedUserIds) ? comment.likedUserIds : [];
+
+  return {
+    id: comment.id,
+    text: comment.text,
+    username: authorName,
+    avatarUrl: comment.authorUserId && author && !comment.isAnonymous ? getPublicAvatarUrl(author, request) : null,
+    likes: likedUserIds.length,
+    likedByMe: currentUser ? likedUserIds.includes(currentUser.id) : false,
+    canEdit: Boolean(currentUser && comment.authorUserId === currentUser.id),
+    hasPassword: Boolean(comment.passwordHash),
+    isAnonymous: Boolean(comment.isAnonymous),
+    createdAt: comment.createdAt,
+    updatedAt: comment.editedAt,
   };
 }
 

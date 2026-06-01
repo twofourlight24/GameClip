@@ -6,6 +6,11 @@ import ReportPopup from "./ReportPopup";
 import EditPopup from "./EditPopup";
 import DeletePopup from "./DeletePopup";
 
+const apiPort = "4000";
+const defaultApiBaseUrl =
+  import.meta.env.VITE_UPLOAD_API_BASE_URL ||
+  `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
+
 interface ReelsItemProps {
   video: Video;
   showHeaderSpacer?: boolean;
@@ -20,8 +25,13 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
   const clickTimerRef = useRef<number | null>(null);
   const volumeFeedbackTimerRef = useRef<number | null>(null);
   const centerFeedbackTimerRef = useRef<number | null>(null);
+  const likeMessageTimerRef = useRef<number | null>(null);
   const isPointerInsidePlayerRef = useRef(false);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(video.likedByMe ?? false);
+  const [likeCount, setLikeCount] = useState(video.likes);
+  const [commentCount, setCommentCount] = useState(video.comments);
+  const [isLikeSaving, setIsLikeSaving] = useState(false);
+  const [likeMessage, setLikeMessage] = useState("");
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -37,6 +47,12 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoUiVisible = !video.videoUrl || controlsVisible;
+
+  useEffect(() => {
+    setLiked(video.likedByMe ?? false);
+    setLikeCount(video.likes);
+    setCommentCount(video.comments);
+  }, [video.id, video.likedByMe, video.likes, video.comments]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -115,6 +131,10 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
       if (centerFeedbackTimerRef.current) {
         window.clearTimeout(centerFeedbackTimerRef.current);
       }
+
+      if (likeMessageTimerRef.current) {
+        window.clearTimeout(likeMessageTimerRef.current);
+      }
     };
   }, []);
 
@@ -164,6 +184,74 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
       setCenterFeedback(null);
     }, 650);
   }, []);
+
+  const showLikeMessage = useCallback((message: string) => {
+    setLikeMessage(message);
+
+    if (likeMessageTimerRef.current) {
+      window.clearTimeout(likeMessageTimerRef.current);
+    }
+
+    likeMessageTimerRef.current = window.setTimeout(() => {
+      setLikeMessage("");
+    }, 1800);
+  }, []);
+
+  const toggleLike = async () => {
+    if (isLikeSaving) {
+      return;
+    }
+
+    const nextLiked = !liked;
+    const previousLiked = liked;
+    const previousLikeCount = likeCount;
+
+    setLiked(nextLiked);
+    setLikeCount((currentCount) => Math.max(0, currentCount + (nextLiked ? 1 : -1)));
+    setIsLikeSaving(true);
+    setLikeMessage("");
+
+    try {
+      const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos/${encodeURIComponent(video.id)}/like`, {
+        method: nextLiked ? "POST" : "DELETE",
+        credentials: "include",
+      });
+      const payload = (await readPayload(response)) as Partial<Video> & { message?: string };
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("로그인 후 하트를 누를 수 있습니다.");
+        }
+
+        throw new Error(payload.message || "좋아요를 저장하지 못했습니다.");
+      }
+
+      const savedLiked = payload.likedByMe ?? nextLiked;
+      const savedLikeCount = typeof payload.likes === "number" ? payload.likes : Math.max(0, previousLikeCount + (nextLiked ? 1 : -1));
+      setLiked(savedLiked);
+      setLikeCount(savedLikeCount);
+      onUpdated?.({
+        ...video,
+        ...payload,
+        likedByMe: savedLiked,
+        likes: savedLikeCount,
+      });
+    } catch (error) {
+      setLiked(previousLiked);
+      setLikeCount(previousLikeCount);
+      showLikeMessage(error instanceof Error ? error.message : "좋아요를 저장하지 못했습니다.");
+    } finally {
+      setIsLikeSaving(false);
+    }
+  };
+
+  const handleCommentCountChange = useCallback((nextCommentCount: number) => {
+    setCommentCount(nextCommentCount);
+    onUpdated?.({
+      ...video,
+      comments: nextCommentCount,
+    });
+  }, [onUpdated, video]);
 
   const togglePlayback = useCallback(async (showFeedback = false) => {
     const videoElement = videoRef.current;
@@ -554,16 +642,23 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
                   <div className="ml-3 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setLiked(!liked)}
-                      className="flex h-10 min-w-10 items-center justify-center gap-1 rounded-full bg-white/10 px-2 hover:bg-white/20 active:scale-95"
+                      onClick={() => void toggleLike()}
+                      disabled={isLikeSaving}
+                      className="relative flex h-10 min-w-10 items-center justify-center gap-1 rounded-full bg-white/10 px-2 hover:bg-white/20 active:scale-95 disabled:cursor-wait disabled:opacity-80"
                       aria-label="좋아요"
+                      aria-pressed={liked}
                     >
                       <i
                         className={`${liked ? "ri-heart-3-fill text-red-500" : "ri-heart-3-line text-white"} text-xl transition-colors`}
                       />
                       <span className="text-[11px] font-semibold tabular-nums text-white/95">
-                        {(video.likes / 1000).toFixed(1)}k
+                        {formatCompactCount(likeCount)}
                       </span>
+                      {likeMessage && (
+                        <span className="pointer-events-none absolute bottom-12 right-0 w-max max-w-[210px] rounded-md bg-black/80 px-2 py-1 text-[11px] font-semibold text-white shadow-lg">
+                          {likeMessage}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -574,7 +669,7 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
                     >
                       <i className="ri-chat-1-line text-xl text-white" />
                       <span className="text-[11px] font-semibold tabular-nums text-white/95">
-                        {(video.comments / 1000).toFixed(1)}k
+                        {formatCompactCount(commentCount)}
                       </span>
                     </button>
 
@@ -643,8 +738,10 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
       <CommentPopup
         isOpen={isCommentOpen}
         onClose={() => setIsCommentOpen(false)}
+        videoId={video.id}
         videoTitle={video.title}
-        commentCount={video.comments}
+        commentCount={commentCount}
+        onCommentCountChange={handleCommentCountChange}
       />
 
       {/* More Options Popup */}
@@ -686,4 +783,19 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
       />
     </div>
   );
+}
+
+async function readPayload(response: Response) {
+  const text = await response.text();
+  return text ? JSON.parse(text) : {};
+}
+
+function cleanApiBaseUrl(value: string) {
+  return value.trim().replace(/\/$/, "");
+}
+
+function formatCompactCount(count: number) {
+  if (count >= 10000) return `${(count / 10000).toFixed(count >= 100000 ? 0 : 1)}만`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}천`;
+  return String(count);
 }
