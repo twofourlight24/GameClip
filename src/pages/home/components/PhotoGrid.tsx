@@ -54,7 +54,19 @@ export default function PhotoGrid({ videos, onVideoClick }: PhotoGridProps) {
             <p className="line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow">
               {video.title}
             </p>
-            <p className="mt-1 truncate text-[10px] text-white/75">{video.gameName}</p>
+            <div className="mt-1 flex items-end justify-between gap-2">
+              <p className="min-w-0 truncate text-[10px] text-white/75">{video.gameName}</p>
+              <div className="flex shrink-0 items-center gap-2 rounded-full bg-black/45 px-2 py-1 text-[10px] font-semibold text-white/95 backdrop-blur-sm">
+                <span className="flex items-center gap-1 tabular-nums">
+                  <i className="ri-heart-3-fill text-[11px] text-red-500" />
+                  {formatCompactCount(video.likes)}
+                </span>
+                <span className="flex items-center gap-1 tabular-nums">
+                  <i className="ri-chat-1-fill text-[11px] text-sky-300" />
+                  {formatCompactCount(video.comments)}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Video indicator */}
@@ -65,4 +77,10 @@ export default function PhotoGrid({ videos, onVideoClick }: PhotoGridProps) {
       ))}
     </div>
   );
+}
+
+function formatCompactCount(count: number) {
+  if (count >= 10000) return `${(count / 10000).toFixed(1)}만`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}천`;
+  return count;
 }

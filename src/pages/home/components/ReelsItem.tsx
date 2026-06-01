@@ -240,6 +240,7 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
         likedByMe: savedLiked,
         likes: savedLikeCount,
       });
+      window.dispatchEvent(new Event("gameclip:videos-changed"));
     } catch (error) {
       setLiked(previousLiked);
       setLikeCount(previousLikeCount);
@@ -255,6 +256,7 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
       ...video,
       comments: nextCommentCount,
     });
+    window.dispatchEvent(new Event("gameclip:videos-changed"));
   }, [onUpdated, video]);
 
   const togglePlayback = useCallback(async (showFeedback = false) => {

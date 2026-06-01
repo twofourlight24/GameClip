@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import AccountSettingsPopup from "./AccountSettingsPopup";
+import LoginSignupPopup from "./LoginSignupPopup";
 import NotificationPopup from "./NotificationPopup";
-import TestAccountPopup from "./TestAccountPopup";
-import TestAuthPopup from "./TestAuthPopup";
 import UploadPopup from "./UploadPopup";
 
 const apiPort = "4000";
@@ -20,9 +20,9 @@ interface LeftSidebarProps {
   onHomeClick?: () => void;
 }
 
-type TestAuthMode = "login" | "signup";
+type AuthMode = "login" | "signup";
 
-type TestAuthUser = {
+type AuthUser = {
   id: string;
   username: string;
   nickname: string;
@@ -34,10 +34,10 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
   const [active, setActive] = useState("home");
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<TestAuthMode>("login");
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [testUser, setTestUser] = useState<TestAuthUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,16 +47,16 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
     })
       .then(async (response) => {
         if (!response.ok) return null;
-        return (await response.json()) as TestAuthUser;
+        return (await response.json()) as AuthUser;
       })
       .then((user) => {
         if (isMounted) {
-          setTestUser(user);
+          setCurrentUser(user);
         }
       })
       .catch(() => {
         if (isMounted) {
-          setTestUser(null);
+          setCurrentUser(null);
         }
       });
 
@@ -72,7 +72,7 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
     onHomeClick?.();
   };
 
-  const openAuth = (mode: TestAuthMode) => {
+  const openAuth = (mode: AuthMode) => {
     setAuthMode(mode);
     setIsAuthOpen(true);
   };
@@ -82,7 +82,7 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
       method: "POST",
       credentials: "include",
     }).catch(() => undefined);
-    setTestUser(null);
+    setCurrentUser(null);
     setIsAccountOpen(false);
     window.dispatchEvent(new Event("gameclip:auth-changed"));
   };
@@ -165,14 +165,14 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
         </nav>
 
         <div className="px-2 lg:px-4">
-          {testUser ? (
+          {currentUser ? (
             <div className="rounded-2xl bg-[#18181b] p-2 lg:p-3">
               <div className="flex items-center justify-center gap-3 lg:justify-start">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#27272a]">
-                  {testUser.avatarUrl ? (
+                  {currentUser.avatarUrl ? (
                     <img
-                      src={testUser.avatarUrl}
-                      alt={testUser.nickname}
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.nickname}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -180,8 +180,8 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
                   )}
                 </div>
                 <div className="hidden min-w-0 lg:block">
-                  <p className="truncate text-sm font-bold text-white">{testUser.nickname}</p>
-                  <p className="truncate text-xs text-[#a1a1aa]">@{testUser.username}</p>
+                  <p className="truncate text-sm font-bold text-white">{currentUser.nickname}</p>
+                  <p className="truncate text-xs text-[#a1a1aa]">@{currentUser.username}</p>
                 </div>
               </div>
               <button
@@ -235,28 +235,28 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onUploadSuccess={onUploadSuccess}
-        currentUser={testUser}
+        currentUser={currentUser}
       />
 
-      <TestAuthPopup
+      <LoginSignupPopup
         isOpen={isAuthOpen}
         mode={authMode}
         onClose={() => setIsAuthOpen(false)}
         onModeChange={setAuthMode}
         onAuthenticated={(user) => {
-          setTestUser(user);
+          setCurrentUser(user);
           window.dispatchEvent(new Event("gameclip:auth-changed"));
         }}
       />
 
-      {testUser && (
-        <TestAccountPopup
+      {currentUser && (
+        <AccountSettingsPopup
           isOpen={isAccountOpen}
-          user={testUser}
+          user={currentUser}
           onClose={() => setIsAccountOpen(false)}
-          onUpdated={setTestUser}
+          onUpdated={setCurrentUser}
           onDeleted={() => {
-            setTestUser(null);
+            setCurrentUser(null);
             window.dispatchEvent(new Event("gameclip:auth-changed"));
           }}
         />

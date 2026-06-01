@@ -5,7 +5,7 @@ const defaultApiBaseUrl =
   import.meta.env.VITE_UPLOAD_API_BASE_URL ||
   `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
 
-type TestAuthMode = "login" | "signup";
+type AuthMode = "login" | "signup";
 
 type AuthUser = {
   id: string;
@@ -16,21 +16,21 @@ type AuthUser = {
   message?: string;
 };
 
-interface TestAuthPopupProps {
+interface LoginSignupPopupProps {
   isOpen: boolean;
-  mode: TestAuthMode;
+  mode: AuthMode;
   onClose: () => void;
-  onModeChange: (mode: TestAuthMode) => void;
+  onModeChange: (mode: AuthMode) => void;
   onAuthenticated: (user: AuthUser) => void;
 }
 
-export default function TestAuthPopup({
+export default function LoginSignupPopup({
   isOpen,
   mode,
   onClose,
   onModeChange,
   onAuthenticated,
-}: TestAuthPopupProps) {
+}: LoginSignupPopupProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -139,7 +139,6 @@ export default function TestAuthPopup({
       <div className="relative z-10 w-[92vw] max-w-[420px] overflow-hidden rounded-2xl border border-white/10 bg-[#18181b] shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase text-sky-300/90">Test Auth</p>
             <h3 className="text-sm font-bold text-white">{isSignup ? "회원가입" : "로그인"}</h3>
           </div>
           <button

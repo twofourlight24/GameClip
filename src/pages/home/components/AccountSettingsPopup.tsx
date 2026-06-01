@@ -14,7 +14,7 @@ type AuthUser = {
   message?: string;
 };
 
-interface TestAccountPopupProps {
+interface AccountSettingsPopupProps {
   isOpen: boolean;
   user: AuthUser;
   onClose: () => void;
@@ -22,13 +22,13 @@ interface TestAccountPopupProps {
   onDeleted: () => void;
 }
 
-export default function TestAccountPopup({
+export default function AccountSettingsPopup({
   isOpen,
   user,
   onClose,
   onUpdated,
   onDeleted,
-}: TestAccountPopupProps) {
+}: AccountSettingsPopupProps) {
   const [nickname, setNickname] = useState(user.nickname);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -197,7 +197,6 @@ export default function TestAccountPopup({
       <div className="relative z-10 max-h-[90vh] w-[94vw] max-w-[460px] overflow-hidden rounded-2xl border border-white/10 bg-[#18181b] shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase text-sky-300/90">Test Account</p>
             <h3 className="text-sm font-bold text-white">계정 설정</h3>
           </div>
           <button
