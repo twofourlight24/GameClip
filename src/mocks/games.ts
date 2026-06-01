@@ -1,7 +1,7 @@
 export interface Game {
   id: string;
   name: string;
-  tag: string;
+  genreIds: string[];
   color: string;
   icon: string;
   isTrending?: boolean;
@@ -11,7 +11,7 @@ export const trendingGames: Game[] = [
   {
     id: "g1",
     name: "리그 오브 레전드",
-    tag: "lol",
+    genreIds: ["moba", "strategy"],
     color: "#c89b3c",
     icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/38a199c5-d697-4fc7-866b-a0bba9bc225a_LOL.png?v=0de9ef41d4549041eb3693a048cd098e",
     isTrending: true,
@@ -19,7 +19,7 @@ export const trendingGames: Game[] = [
   {
     id: "g2",
     name: "발로란트",
-    tag: "valorant",
+    genreIds: ["fps", "strategy"],
     color: "#ff4655",
     icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/6793153f-6221-465a-bf06-1acb78fa37b6_valorant.png?v=f90693dfcb51d6315b71f3a52814511f",
     isTrending: true,
@@ -27,7 +27,7 @@ export const trendingGames: Game[] = [
   {
     id: "g3",
     name: "배틀그라운드",
-    tag: "pubg",
+    genreIds: ["fps", "battle_royale", "survival"],
     color: "#f2a900",
     icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/9f795baa-61fc-4838-909c-ee172342bcee_battleground.png?v=d140232c13bfc26dfe4dbd1f92dc624f",
     isTrending: true,
@@ -35,7 +35,7 @@ export const trendingGames: Game[] = [
   {
     id: "g4",
     name: "오버워치 2",
-    tag: "overwatch",
+    genreIds: ["fps", "coop"],
     color: "#f99e1a",
     icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/5d438cd6-c518-4ed8-822c-8fcf438baea7_overwatch.png?v=780c6ccc3d8ea4b89c00a6243f5c1ba5",
     isTrending: true,
@@ -43,7 +43,7 @@ export const trendingGames: Game[] = [
   {
     id: "g5",
     name: "메이플스토리",
-    tag: "maple",
+    genreIds: ["rpg", "mmorpg"],
     color: "#ff6b9d",
     icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/ce9a145b-0757-480b-99c5-c42901807d00_maplestory.png?v=be05ab5773264cbafeba0bb25f432e61",
     isTrending: true,
@@ -51,17 +51,128 @@ export const trendingGames: Game[] = [
   {
     id: "g6",
     name: "로스트아크",
-    tag: "lostark",
+    genreIds: ["rpg", "mmorpg", "coop"],
     color: "#a855f7",
     icon: "https://storage.readdy-site.link/project_files/0fe661e8-9328-496e-9536-90bae34f6160/94386b5a-d300-49dc-b63e-cd5d2b94d95f_lostark.png?v=6926a193d3436b8ae52fc0b58832c95f",
     isTrending: true,
+  },
+  {
+    id: "g7",
+    name: "마인크래프트",
+    genreIds: ["sandbox", "survival", "coop"],
+    color: "#52a535",
+    icon: "https://readdy.ai/api/search-image?query=Minecraft%20grass%20block%20game%20icon%20pixel%20art%20green%20brown%20clean%20square%20logo%20style&width=100&height=100&seq=game-minecraft&orientation=squarish",
+    isTrending: true,
+  },
+  {
+    id: "g8",
+    name: "헬다이버 2",
+    genreIds: ["tps", "coop", "action"],
+    color: "#facc15",
+    icon: "https://readdy.ai/api/search-image?query=Helldivers%202%20sci%20fi%20soldier%20helmet%20yellow%20black%20game%20icon%20clean%20square%20logo%20style&width=100&height=100&seq=game-helldivers2&orientation=squarish",
+    isTrending: true,
+  },
+  {
+    id: "g9",
+    name: "테트리스",
+    genreIds: ["puzzle"],
+    color: "#22d3ee",
+    icon: "https://readdy.ai/api/search-image?query=Tetris%20colorful%20falling%20blocks%20puzzle%20game%20icon%20clean%20square%20logo%20style&width=100&height=100&seq=game-tetris&orientation=squarish",
+    isTrending: true,
+  },
+  {
+    id: "g10",
+    name: "osu!",
+    genreIds: ["rhythm"],
+    color: "#ff66aa",
+    icon: "https://readdy.ai/api/search-image?query=rhythm%20game%20pink%20circle%20target%20icon%20clean%20square%20logo%20style&width=100&height=100&seq=game-osu&orientation=squarish",
+    isTrending: true,
+  },
+  {
+    id: "g11",
+    name: "철권 8",
+    genreIds: ["fighting"],
+    color: "#dc2626",
+    icon: "https://readdy.ai/api/search-image?query=Tekken%208%20fighting%20game%20arcade%20icon%20red%20blue%20energy%20clean%20square%20logo%20style&width=100&height=100&seq=game-tekken8&orientation=squarish",
+  },
+  {
+    id: "g12",
+    name: "FC 온라인",
+    genreIds: ["sports"],
+    color: "#16a34a",
+    icon: "https://readdy.ai/api/search-image?query=football%20soccer%20video%20game%20ball%20stadium%20icon%20clean%20square%20logo%20style&width=100&height=100&seq=game-fconline&orientation=squarish",
+  },
+  {
+    id: "g13",
+    name: "이터널 리턴",
+    genreIds: ["moba", "battle_royale", "survival"],
+    color: "#7c3aed",
+    icon: "https://readdy.ai/api/search-image?query=anime%20battle%20royale%20game%20icon%20purple%20energy%20clean%20square%20logo%20style&width=100&height=100&seq=game-eternalreturn&orientation=squarish",
+  },
+  {
+    id: "g14",
+    name: "스타크래프트",
+    genreIds: ["strategy"],
+    color: "#38bdf8",
+    icon: "https://readdy.ai/api/search-image?query=sci%20fi%20real%20time%20strategy%20game%20icon%20blue%20space%20armor%20clean%20square%20logo%20style&width=100&height=100&seq=game-starcraft&orientation=squarish",
+  },
+  {
+    id: "g15",
+    name: "원신",
+    genreIds: ["rpg", "adventure"],
+    color: "#60a5fa",
+    icon: "https://readdy.ai/api/search-image?query=anime%20fantasy%20open%20world%20game%20icon%20blue%20sky%20clean%20square%20logo%20style&width=100&height=100&seq=game-genshin&orientation=squarish",
+  },
+  {
+    id: "g16",
+    name: "GTA V",
+    genreIds: ["action", "adventure", "sandbox"],
+    color: "#22c55e",
+    icon: "https://readdy.ai/api/search-image?query=open%20world%20crime%20action%20game%20city%20icon%20green%20clean%20square%20logo%20style&width=100&height=100&seq=game-gtav&orientation=squarish",
+  },
+  {
+    id: "g17",
+    name: "A Dance of Fire and Ice",
+    genreIds: ["rhythm"],
+    color: "#f43f5e",
+    icon: "https://readdy.ai/api/search-image?query=A%20Dance%20of%20Fire%20and%20Ice%20rhythm%20game%20two%20orbiting%20circles%20red%20blue%20clean%20square%20icon&width=100&height=100&seq=game-adofai&orientation=squarish",
+  },
+  {
+    id: "g18",
+    name: "레인보우 식스 시즈",
+    genreIds: ["fps", "strategy", "coop"],
+    color: "#94a3b8",
+    icon: "https://readdy.ai/api/search-image?query=tactical%20shooter%20breach%20operator%20helmet%20game%20icon%20clean%20square%20logo%20style&width=100&height=100&seq=game-r6siege&orientation=squarish",
+  },
+  {
+    id: "g19",
+    name: "길티기어 스트라이브",
+    genreIds: ["fighting"],
+    color: "#f97316",
+    icon: "https://readdy.ai/api/search-image?query=anime%20fighting%20game%20electric%20guitar%20flame%20icon%20clean%20square%20logo%20style&width=100&height=100&seq=game-guiltygear&orientation=squarish",
   },
 ];
 
 export const gameGenres = [
   { id: "fps", name: "FPS", color: "#ef4444" },
+  { id: "tps", name: "TPS", color: "#fb7185" },
   { id: "moba", name: "MOBA", color: "#3b82f6" },
   { id: "rpg", name: "RPG", color: "#8b5cf6" },
+  { id: "mmorpg", name: "MMORPG", color: "#a855f7" },
   { id: "fighting", name: "격투", color: "#f59e0b" },
   { id: "sports", name: "스포츠", color: "#06b6d4" },
+  { id: "coop", name: "협동", color: "#10b981" },
+  { id: "sandbox", name: "샌드박스", color: "#84cc16" },
+  { id: "survival", name: "생존", color: "#14b8a6" },
+  { id: "battle_royale", name: "배틀로얄", color: "#f97316" },
+  { id: "rhythm", name: "리듬", color: "#ec4899" },
+  { id: "puzzle", name: "퍼즐", color: "#22d3ee" },
+  { id: "strategy", name: "전략", color: "#6366f1" },
+  { id: "action", name: "액션", color: "#e11d48" },
+  { id: "adventure", name: "어드벤처", color: "#0ea5e9" },
+  { id: "racing", name: "레이싱", color: "#facc15" },
+  { id: "simulation", name: "시뮬레이션", color: "#64748b" },
+  { id: "horror", name: "공포", color: "#7f1d1d" },
+  { id: "party", name: "파티", color: "#d946ef" },
+  { id: "roguelike", name: "로그라이크", color: "#9333ea" },
 ];

@@ -326,8 +326,8 @@
               <input name="gameName" value="Demo game" />
             </label>
             <label>
-              Game tag
-              <input name="gameTag" value="demo" />
+              Genre tags
+              <input name="genreTags" value='["FPS","협동"]' />
             </label>
             <label>
               Uploader
@@ -490,7 +490,7 @@
           const meta = document.createElement("small");
           title.textContent = item.title || item.originalName;
           meta.textContent =
-            `게임: ${item.gameName || "no game"} | 태그: ${item.gameTag || "no tag"} | 업로더: ${item.uploader} | ${item.hasPassword ? "비밀번호 보호됨" : "공개 수정/삭제"} | 크기: ${formatBytes(item.size)} | 시간: ${formatTimestamp(item.createdAt)} | ${item.videoUrl}`;
+            `게임: ${item.gameName || "no game"} | 장르: ${(item.genreTags || []).join(", ") || "no genre"} | 업로더: ${item.uploader} | ${item.hasPassword ? "비밀번호 보호됨" : "공개 수정/삭제"} | 크기: ${formatBytes(item.size)} | 시간: ${formatTimestamp(item.createdAt)} | ${item.videoUrl}`;
           text.append(title, meta);
 
           const playButton = document.createElement("button");
@@ -528,9 +528,9 @@
           return;
         }
 
-        const nextGameTag = prompt("새 태그를 입력하세요.", item.gameTag || "");
+        const nextGenreTags = prompt("새 장르 태그를 쉼표로 구분해 입력하세요.", (item.genreTags || []).join(", "));
 
-        if (nextGameTag === null) {
+        if (nextGenreTags === null) {
           return;
         }
 
@@ -556,7 +556,7 @@
             body: JSON.stringify({
               title: nextTitle,
               gameName: nextGameName,
-              gameTag: nextGameTag,
+              genreTags: nextGenreTags.split(",").map((tag) => tag.trim()).filter(Boolean),
               uploader: nextUploader,
               password,
             }),

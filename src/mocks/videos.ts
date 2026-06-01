@@ -2,7 +2,8 @@ export interface Video {
   id: string;
   title: string;
   gameName: string;
-  gameTag: string;
+  genreTag?: string;
+  genreTags?: string[];
   thumbnail: string;
   videoUrl?: string;
   views: string;
@@ -21,7 +22,8 @@ export const videos: Video[] = [
     id: "v1",
     title: "레전드 펜타킬 클립 - 리신 인섹 각도 미쳤다",
     gameName: "리그 오브 레전드",
-    gameTag: "lol",
+    genreTag: "moba",
+    genreTags: ["MOBA", "전략"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=dramatic%20League%20of%20Legends%20gameplay%20screenshot%20with%20neon%20abilities%20and%20explosions%20dark%20arena%20background%20epic%20moment%20highlight%20cinematic%20lighting%20esports&width=600&height=800&seq=101&orientation=portrait",
     views: "124만",
@@ -38,7 +40,8 @@ export const videos: Video[] = [
     id: "v2",
     title: "발로란트 에임 각도 보고 배워가세요",
     gameName: "발로란트",
-    gameTag: "valorant",
+    genreTag: "fps",
+    genreTags: ["FPS", "전략"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=Valorant%20tactical%20shooter%20gameplay%20screenshot%20with%20agents%20and%20gunfight%20neon%20cyberpunk%20environment%20dark%20corridor%20esports%20cinematic%20moody%20lighting&width=600&height=800&seq=102&orientation=portrait",
     views: "89만",
@@ -54,7 +57,8 @@ export const videos: Video[] = [
     id: "v3",
     title: "철권8 최강 콤보 98히트 달성",
     gameName: "철권 8",
-    gameTag: "tekken",
+    genreTag: "fighting",
+    genreTags: ["격투"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=Tekken%20fighting%20game%20screenshot%20with%20characters%20in%20intense%20combat%20neon%20arena%20dark%20background%20esports%20fighting%20game%20cinematic%20lighting%20explosive%20effects&width=600&height=800&seq=103&orientation=portrait",
     views: "56만",
@@ -70,7 +74,8 @@ export const videos: Video[] = [
     id: "v4",
     title: "배틀그라운드 1vs4 치킨 마지막 각",
     gameName: "배틀그라운드",
-    gameTag: "pubg",
+    genreTag: "fps",
+    genreTags: ["FPS", "배틀로얄", "생존"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=PUBG%20battle%20royale%20gameplay%20screenshot%20with%20player%20in%20last%20circle%20desert%20environment%20sniping%20from%20hill%20dark%20atmospheric%20esports%20cinematic%20lighting&width=600&height=800&seq=104&orientation=portrait",
     views: "210만",
@@ -86,7 +91,8 @@ export const videos: Video[] = [
     id: "v5",
     title: "메이플스토리 6차 전직 스킬 쇼케이스",
     gameName: "메이플스토리",
-    gameTag: "maple",
+    genreTag: "rpg",
+    genreTags: ["RPG", "MMORPG"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=MapleStory%202D%20side%20scrolling%20gameplay%20with%20colorful%20skills%20and%20effects%20chibi%20character%20fantasy%20forest%20background%20vibrant%20neon%20abilities%20dark%20moody%20atmosphere&width=600&height=800&seq=105&orientation=portrait",
     views: "45만",
@@ -102,7 +108,8 @@ export const videos: Video[] = [
     id: "v6",
     title: "로스트아크 군단장 레이드 솔로 클리어",
     gameName: "로스트아크",
-    gameTag: "lostark",
+    genreTag: "rpg",
+    genreTags: ["RPG", "MMORPG", "협동"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=Lost%20Ark%20MMORPG%20boss%20raid%20screenshot%20with%20massive%20demon%20enemy%20epic%20battle%20neon%20skills%20dark%20fiery%20arena%20cinematic%20lighting%20esports%20MMO%20action&width=600&height=800&seq=106&orientation=portrait",
     views: "78만",
@@ -118,7 +125,8 @@ export const videos: Video[] = [
     id: "v7",
     title: "오버워치2 에코 6킬 울트타이밍",
     gameName: "오버워치 2",
-    gameTag: "overwatch",
+    genreTag: "fps",
+    genreTags: ["FPS", "협동"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=Overwatch%202%20hero%20shooter%20gameplay%20with%20multiple%20heroes%20in%20teamfight%20neon%20futuristic%20city%20dark%20night%20environment%20esports%20cinematic%20abilities%20explosions&width=600&height=800&seq=107&orientation=portrait",
     views: "92만",
@@ -134,7 +142,8 @@ export const videos: Video[] = [
     id: "v8",
     title: "FC온라인 30미터 중거리 슈퍼골",
     gameName: "FC 온라인",
-    gameTag: "fconline",
+    genreTag: "sports",
+    genreTags: ["스포츠"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=FC%20Online%20football%20soccer%20game%20screenshot%20with%20player%20shooting%20long%20range%20goal%20stadium%20at%20night%20floodlights%20dark%20atmosphere%20esports%20cinematic%20celebration%20moment&width=600&height=800&seq=108&orientation=portrait",
     views: "33만",
@@ -150,7 +159,8 @@ export const videos: Video[] = [
     id: "v9",
     title: "서든어택 스나이퍼 원킬 모음",
     gameName: "서든어택",
-    gameTag: "sudden",
+    genreTag: "fps",
+    genreTags: ["FPS"],
     thumbnail:
       "https://readdy.ai/api/search-image?query=Sudden%20Attack%20tactical%20FPS%20gameplay%20screenshot%20with%20sniper%20scope%20aiming%20at%20enemy%20dark%20indoor%20warehouse%20environment%20neon%20muzzle%20flash%20esports%20cinematic%20tension&width=600&height=800&seq=109&orientation=portrait",
     views: "67만",

@@ -14,7 +14,8 @@ type UploadedVideo = {
   title?: string;
   originalName?: string;
   gameName?: string;
-  gameTag?: string;
+  genreTag?: string;
+  genreTags?: string[];
   uploader?: string;
   avatarUrl?: string | null;
   size?: number;
@@ -25,12 +26,12 @@ type UploadedVideo = {
 };
 
 interface ReelsFeedProps {
-  selectedTag?: string | null;
-  onTagChange?: (tag: string | null) => void;
+  selectedGameName?: string | null;
+  onGameNameChange?: (gameName: string | null) => void;
   homeResetKey?: number;
 }
 
-export default function ReelsFeed({ selectedTag, onTagChange: _onTagChange, homeResetKey = 0 }: ReelsFeedProps) {
+export default function ReelsFeed({ selectedGameName, onGameNameChange: _onGameNameChange, homeResetKey = 0 }: ReelsFeedProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,9 +103,9 @@ export default function ReelsFeed({ selectedTag, onTagChange: _onTagChange, home
   };
 
   const filteredVideos = useMemo(() => {
-    if (!selectedTag) return videos;
-    return videos.filter((video) => video.gameTag === selectedTag || video.tags?.includes(selectedTag));
-  }, [selectedTag, videos]);
+    if (!selectedGameName) return videos;
+    return videos.filter((video) => video.gameName === selectedGameName);
+  }, [selectedGameName, videos]);
 
   useEffect(() => {
     if (!didMountRef.current) {
@@ -177,7 +178,7 @@ export default function ReelsFeed({ selectedTag, onTagChange: _onTagChange, home
         <div className="flex h-[calc(100%-48px)] flex-col items-center justify-center text-[#a1a1aa]">
           <i className="ri-film-line mb-4 text-5xl text-[#52525b]" />
           <p className="text-base font-medium">
-            {selectedTag ? "선택한 게임의 영상이 없습니다" : "아직 업로드된 영상이 없습니다"}
+            {selectedGameName ? "선택한 게임의 영상이 없습니다" : "아직 업로드된 영상이 없습니다"}
           </p>
         </div>
       )}
@@ -187,13 +188,15 @@ export default function ReelsFeed({ selectedTag, onTagChange: _onTagChange, home
 
 function toFeedVideo(video: UploadedVideo): Video {
   const gameName = video.gameName || "게임 미지정";
-  const gameTag = video.gameTag || "untagged";
+  const genreTags = Array.isArray(video.genreTags)
+    ? video.genreTags
+    : [video.genreTag].filter(Boolean);
 
   return {
     id: video.id,
     title: video.title || video.originalName || "제목 없는 영상",
     gameName,
-    gameTag,
+    genreTags,
     thumbnail: "",
     videoUrl: video.videoUrl,
     views: "0",
@@ -203,7 +206,7 @@ function toFeedVideo(video: UploadedVideo): Video {
     likes: video.likes ?? 0,
     likedByMe: video.likedByMe ?? false,
     comments: video.comments ?? 0,
-    tags: [gameName, gameTag].filter(Boolean),
+    tags: [gameName, ...genreTags].filter(Boolean),
   };
 }
 

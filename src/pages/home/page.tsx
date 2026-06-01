@@ -5,16 +5,16 @@ import RightSidebar from "./components/RightSidebar";
 import Toast from "./components/Toast";
 
 export default function Home() {
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [selectedGameName, setSelectedGameName] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [homeResetKey, setHomeResetKey] = useState(0);
 
-  const handleGameClick = (tag: string) => {
-    setSelectedGame((prev) => (prev === tag ? null : tag));
+  const handleGameClick = (gameName: string) => {
+    setSelectedGameName((prev) => (prev === gameName ? null : gameName));
   };
 
   const handleHomeClick = useCallback(() => {
-    setSelectedGame(null);
+    setSelectedGameName(null);
     setHomeResetKey((currentKey) => currentKey + 1);
   }, []);
 
@@ -37,8 +37,8 @@ export default function Home() {
           {/* Center - Reels */}
           <div className="flex-1 min-w-0 h-full overflow-hidden">
             <ReelsFeed
-              selectedTag={selectedGame}
-              onTagChange={setSelectedGame}
+              selectedGameName={selectedGameName}
+              onGameNameChange={setSelectedGameName}
               homeResetKey={homeResetKey}
             />
           </div>

@@ -47,6 +47,7 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoUiVisible = !video.videoUrl || controlsVisible;
+  const displayedGenreTags = video.genreTags || video.tags?.filter((tag) => tag !== video.gameName) || [];
 
   useEffect(() => {
     setLiked(video.likedByMe ?? false);
@@ -89,7 +90,10 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
     onUpdated?.({
       ...video,
       ...payload,
-      tags: [payload.gameName || video.gameName, payload.gameTag || video.gameTag].filter(Boolean),
+      tags: [
+        payload.gameName || video.gameName,
+        ...(payload.genreTags || video.genreTags || [payload.genreTag || video.genreTag].filter(Boolean)),
+      ].filter(Boolean),
     });
   };
 
@@ -718,12 +722,15 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
               {video.title}
             </p>
 
-            {/* Game tags */}
-            <div className="flex flex-wrap gap-1 mb-2">
-              {video.tags.map((tag) => (
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-sky-300/40 bg-sky-400/20 px-2 py-1 text-[10px] font-bold text-sky-50 shadow-lg shadow-black/20 backdrop-blur-sm">
+                <i className="ri-gamepad-line text-[11px]" />
+                <span className="truncate">{video.gameName}</span>
+              </span>
+              {displayedGenreTags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-1.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-white/90 text-[10px] font-medium border border-white/20"
+                  className="rounded-full border border-white/15 bg-black/25 px-1.5 py-0.5 text-[10px] font-medium text-white/80 backdrop-blur-sm"
                 >
                   {tag}
                 </span>
@@ -768,7 +775,8 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
           id: video.id,
           title: video.title,
           gameName: video.gameName,
-          gameTag: video.gameTag,
+          genreTag: video.genreTag,
+          genreTags: video.genreTags,
           uploader: video.uploader,
         }}
       />

@@ -2,7 +2,7 @@ import { trendingGames } from "@/mocks/games";
 import { videos } from "@/mocks/videos";
 
 interface RightSidebarProps {
-  onGameClick?: (tag: string) => void;
+  onGameClick?: (gameName: string) => void;
 }
 
 const rankedVideos = [...videos].sort((a, b) => b.likes - a.likes).slice(0, 8);
@@ -27,7 +27,7 @@ export default function RightSidebar({ onGameClick }: RightSidebarProps) {
             {trendingGames.map((game) => (
               <button
                 key={game.id}
-                onClick={() => onGameClick?.(game.tag)}
+                onClick={() => onGameClick?.(game.name)}
                 className="group flex flex-col items-center gap-1.5 p-1.5 rounded-xl hover:bg-[#18181b] transition-all duration-200"
               >
                 <div

@@ -8,7 +8,8 @@ interface EditPopupProps {
     id: string;
     title: string;
     gameName: string;
-    gameTag: string;
+    genreTag?: string;
+    genreTags?: string[];
     uploader: string;
   };
 }
@@ -17,7 +18,8 @@ type VideoPayload = {
   id: string;
   title?: string;
   gameName?: string;
-  gameTag?: string;
+  genreTag?: string;
+  genreTags?: string[];
   uploader?: string;
   message?: string;
 };
@@ -30,7 +32,7 @@ const defaultApiBaseUrl =
 export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPopupProps) {
   const [title, setTitle] = useState(video.title);
   const [gameName, setGameName] = useState(video.gameName);
-  const [gameTag, setGameTag] = useState(video.gameTag);
+  const [genreTag, setGenreTag] = useState((video.genreTags || [video.genreTag]).filter(Boolean).join(", "));
   const [uploader, setUploader] = useState(video.uploader);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -56,7 +58,7 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
     if (isOpen) {
       setTitle(video.title);
       setGameName(video.gameName);
-      setGameTag(video.gameTag);
+      setGenreTag((video.genreTags || [video.genreTag]).filter(Boolean).join(", "));
       setUploader(video.uploader);
       setPassword("");
       setError("");
@@ -65,7 +67,7 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
   }, [isOpen, video]);
 
   const handleSave = async () => {
-    if (!title.trim() || !gameName.trim() || !gameTag.trim() || !uploader.trim()) return;
+    if (!title.trim() || !gameName.trim() || !uploader.trim()) return;
 
     setIsSaving(true);
     setError("");
@@ -78,7 +80,7 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
         body: JSON.stringify({
           title,
           gameName,
-          gameTag,
+          genreTags: genreTag.split(",").map((tag) => tag.trim()).filter(Boolean),
           uploader,
           password,
         }),
@@ -150,13 +152,13 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
                 />
               </div>
 
-            {/* Game tag */}
+            {/* Genre tag */}
             <div className="space-y-1.5">
-              <label className="text-[#a1a1aa] text-xs font-medium">태그</label>
+              <label className="text-[#a1a1aa] text-xs font-medium">장르 태그</label>
               <input
                 type="text"
-                value={gameTag}
-                onChange={(e) => setGameTag(e.target.value)}
+                value={genreTag}
+                onChange={(e) => setGenreTag(e.target.value)}
                 placeholder="예: fps"
                 disabled={isSaving}
                 className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
@@ -210,7 +212,7 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
               </button>
               <button
                 onClick={handleSave}
-                disabled={!title.trim() || !gameName.trim() || !gameTag.trim() || !uploader.trim() || isSaving}
+                disabled={!title.trim() || !gameName.trim() || !uploader.trim() || isSaving}
                 className="flex-1 py-2.5 rounded-xl bg-emerald-500/90 hover:bg-emerald-500 disabled:bg-[#3f3f46] disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
               >
                 {isSaving ? "저장 중..." : "저장"}

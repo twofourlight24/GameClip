@@ -237,7 +237,7 @@ async function saveVideoUpload(request) {
     id,
     title: textField(parts.fields.title, file.filename),
     gameName: textField(parts.fields.gameName, ""),
-    gameTag: textField(parts.fields.gameTag, ""),
+    genreTags: textArrayField(parts.fields.genreTags, textField(parts.fields.genreTag, textField(parts.fields.gameTag, ""))),
     uploader: isAnonymous ? "" : uploader,
     isAnonymous,
     anonymousUploader: isAnonymous ? uploader : "",
@@ -463,7 +463,7 @@ function readByteRange(header, size) {
 
 async function readVideos() {
   try {
-    return JSON.parse(await readFile(metadataPath, "utf8"));
+    return JSON.parse(await readFile(metadataPath, "utf8")).map(normalizeVideoRecord);
   } catch (error) {
     if (error.code === "ENOENT") {
       return [];
@@ -471,6 +471,25 @@ async function readVideos() {
 
     throw error;
   }
+}
+
+function normalizeVideoRecord(video) {
+  if (!video || typeof video !== "object") return video;
+
+  const gameName = typeof video.gameName === "string" ? video.gameName : "";
+  const legacyGameTag = typeof video.gameTag === "string" ? video.gameTag : "";
+  const legacyGenreTag = typeof video.genreTag === "string" ? video.genreTag : "";
+  const genreTags = Array.isArray(video.genreTags)
+    ? video.genreTags.filter((tag) => typeof tag === "string" && tag.trim()).map((tag) => tag.trim())
+    : textArrayField(undefined, legacyGenreTag || (legacyGameTag && legacyGameTag !== gameName ? legacyGameTag : ""));
+
+  return {
+    ...video,
+    gameName,
+    genreTags,
+    genreTag: undefined,
+    gameTag: undefined,
+  };
 }
 
 async function readUsers() {
@@ -568,12 +587,18 @@ async function updateVideo(id, payload = {}, request) {
 
   await verifyVideoAccess(video, payload.password, request);
 
-  const editableFields = ["title", "uploader", "gameName", "gameTag"];
+  const editableFields = ["title", "uploader", "gameName"];
 
   for (const field of editableFields) {
     if (Object.hasOwn(payload, field)) {
       video[field] = editableTextField(payload[field], field === "title" ? video.originalName : "");
     }
+  }
+
+  if (Object.hasOwn(payload, "genreTags")) {
+    video.genreTags = editableTextArrayField(payload.genreTags);
+  } else if (Object.hasOwn(payload, "genreTag")) {
+    video.genreTags = editableTextArrayField(payload.genreTag);
   }
 
   video.updatedAt = new Date().toISOString();
@@ -808,6 +833,41 @@ function readMultipartBoundary(contentType) {
 
 function textField(value, fallback) {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function textArrayField(value, fallback = "") {
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry) => typeof entry === "string")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return textArrayField(parsed);
+      }
+    } catch {
+      // Plain text below.
+    }
+
+    return value.split(",").map((entry) => entry.trim()).filter(Boolean).slice(0, 12);
+  }
+
+  return fallback ? [fallback] : [];
+}
+
+function editableTextArrayField(value) {
+  const tags = textArrayField(value);
+
+  if (tags.some((tag) => tag.length > 40)) {
+    throw httpError(400, "Genre tags must be 40 characters or fewer.");
+  }
+
+  return tags;
 }
 
 function booleanField(value) {

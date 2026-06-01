@@ -7,6 +7,7 @@ interface VideoCardProps {
 
 export default function VideoCard({ video }: VideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const displayedGenreTags = video.genreTags || video.tags?.filter((tag) => tag !== video.gameName) || [];
 
   return (
     <div
@@ -15,7 +16,7 @@ export default function VideoCard({ video }: VideoCardProps) {
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      id={`video-${video.gameTag}`}
+      id={`video-${video.gameName}`}
     >
       {/* Thumbnail */}
       <div className="relative w-full aspect-[3/4] overflow-hidden">
@@ -46,9 +47,11 @@ export default function VideoCard({ video }: VideoCardProps) {
           {video.duration}
         </div>
 
-        {/* Game badge */}
-        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#27272a]/90 backdrop-blur-sm">
-          <span className="text-[#f4f4f5] text-xs font-semibold">{video.gameName}</span>
+        <div className="absolute left-3 top-3 max-w-[calc(100%-84px)] rounded-full border border-sky-300/40 bg-sky-500/25 px-2.5 py-1 backdrop-blur-sm">
+          <span className="flex items-center gap-1 truncate text-xs font-bold text-sky-50">
+            <i className="ri-gamepad-line text-[13px]" />
+            {video.gameName}
+          </span>
         </div>
 
         {/* Hover border */}
@@ -63,13 +66,12 @@ export default function VideoCard({ video }: VideoCardProps) {
           {video.title}
         </h3>
         
-        {/* Game classification tags */}
-        {video.tags && video.tags.length > 0 && (
+        {displayedGenreTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {video.tags.map((tag) => (
+            {displayedGenreTags.slice(0, 4).map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-full bg-[#3f3f46]/80 text-[#a1a1aa] text-[10px] font-medium border border-[#52525b]/50"
+                className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm"
               >
                 {tag}
               </span>
