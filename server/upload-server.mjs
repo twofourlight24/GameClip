@@ -227,11 +227,12 @@ async function saveVideoUpload(request) {
   const id = randomUUID();
   const storedName = `${id}${extension}`;
   await writeFile(join(uploadDir, storedName), file.data);
-  const isAnonymous = booleanField(parts.fields.isAnonymous);
+  const isAnonymous = !sessionUser || booleanField(parts.fields.isAnonymous);
   const ownerUserId = sessionUser && !isAnonymous ? sessionUser.id : null;
+  const anonymousUploader = isAnonymous ? validateNickname(parts.fields.uploader) : "";
   const uploader = sessionUser && !isAnonymous
     ? sessionUser.nickname
-    : textField(parts.fields.uploader, "");
+    : anonymousUploader;
 
   const video = {
     id,
@@ -240,7 +241,7 @@ async function saveVideoUpload(request) {
     genreTags: textArrayField(parts.fields.genreTags, textField(parts.fields.genreTag, textField(parts.fields.gameTag, ""))),
     uploader: isAnonymous ? "" : uploader,
     isAnonymous,
-    anonymousUploader: isAnonymous ? uploader : "",
+    anonymousUploader,
     ownerUserId,
     passwordHash: ownerUserId ? null : passwordField(parts.fields.password),
     likedUserIds: [],
@@ -585,13 +586,21 @@ async function updateVideo(id, payload = {}, request) {
     throw httpError(404, "Video not found.");
   }
 
-  await verifyVideoAccess(video, payload.password, request);
+  const accessUser = await verifyVideoAccess(video, payload.password, request);
 
-  const editableFields = ["title", "uploader", "gameName"];
+  const editableFields = ["title", "gameName"];
 
   for (const field of editableFields) {
     if (Object.hasOwn(payload, field)) {
       video[field] = editableTextField(payload[field], field === "title" ? video.originalName : "");
+    }
+  }
+
+  if (Object.hasOwn(payload, "uploader")) {
+    if (video.isAnonymous) {
+      video.anonymousUploader = validateNickname(payload.uploader);
+    } else if (accessUser) {
+      video.uploader = accessUser.nickname;
     }
   }
 
@@ -1044,10 +1053,11 @@ async function verifyVideoAccess(video, password, request) {
       throw httpError(403, "Only the uploader can change this video.");
     }
 
-    return;
+    return user;
   }
 
   verifyVideoPassword(video, password);
+  return null;
 }
 
 async function verifyCommentAccess(comment, password, request) {
@@ -1201,7 +1211,7 @@ function clearSessionCookie(response) {
 function toPublicVideo(video, request, owner = null, currentUser = null) {
   const videoPath = video.videoPath || new URL(video.videoUrl).pathname;
   const { passwordHash, ...publicVideo } = video;
-  const uploader = video.isAnonymous ? video.anonymousUploader || "익명" : publicVideo.uploader;
+  const uploader = video.isAnonymous ? video.anonymousUploader || "익명" : owner?.nickname || publicVideo.uploader || "익명";
   const ownerAvatarUrl = owner ? getPublicAvatarUrl(owner, request) : null;
   const likedUserIds = Array.isArray(video.likedUserIds) ? video.likedUserIds : [];
   const comments = Array.isArray(video.comments) ? video.comments : [];
@@ -1212,6 +1222,7 @@ function toPublicVideo(video, request, owner = null, currentUser = null) {
     owner: owner && !video.isAnonymous ? toPublicUser(owner, request) : null,
     avatarUrl: video.isAnonymous ? null : ownerAvatarUrl,
     hasPassword: Boolean(passwordHash),
+    canEdit: !video.ownerUserId || Boolean(currentUser && currentUser.id === video.ownerUserId),
     likes: likedUserIds.length,
     likedByMe: currentUser ? likedUserIds.includes(currentUser.id) : false,
     likedUserIds: undefined,

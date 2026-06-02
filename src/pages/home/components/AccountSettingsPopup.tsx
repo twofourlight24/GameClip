@@ -109,6 +109,7 @@ export default function AccountSettingsPopup({
       }
 
       onUpdated(payload);
+      window.dispatchEvent(new Event("gameclip:auth-changed"));
       setMessage("프로필이 수정되었습니다.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "프로필 수정에 실패했습니다.");
@@ -137,6 +138,7 @@ export default function AccountSettingsPopup({
       }
 
       onUpdated(payload);
+      window.dispatchEvent(new Event("gameclip:auth-changed"));
       setCurrentPassword("");
       setNewPassword("");
       setNewPasswordConfirm("");

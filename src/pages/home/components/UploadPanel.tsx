@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { gameGenres, trendingGames } from "@/mocks/games";
 
 const apiPort = "4000";
@@ -12,6 +12,13 @@ type UploadResponse = {
   message?: string;
 };
 
+type CurrentUser = {
+  id: string;
+  username: string;
+  nickname: string;
+  avatarUrl: string | null;
+};
+
 export default function UploadPanel() {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -22,6 +29,8 @@ export default function UploadPanel() {
   const [isCustomGenreOpen, setIsCustomGenreOpen] = useState(false);
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadError, setUploadError] = useState("");
@@ -35,7 +44,51 @@ export default function UploadPanel() {
     .map((genreId) => gameGenres.find((genre) => genre.id === genreId)?.name || genreId)
     .filter(Boolean);
   const uploadGenreTags = [...selectedGenreNames, customGenre.trim()].filter(Boolean);
-  const canUpload = Boolean(selectedFile && title && gameName && uploadGenreTags.length > 0 && nickname && !isUploading);
+  const needsManualIdentity = !currentUser || isAnonymous;
+  const canUpload = Boolean(
+    selectedFile &&
+      title &&
+      gameName &&
+      uploadGenreTags.length > 0 &&
+      (!needsManualIdentity || nickname.trim()) &&
+      !isUploading,
+  );
+
+  const loadCurrentUser = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/me`, {
+        credentials: "include",
+        signal,
+      });
+
+      if (!response.ok) {
+        setCurrentUser(null);
+        setIsAnonymous(false);
+        return;
+      }
+
+      setCurrentUser((await response.json()) as CurrentUser);
+    } catch {
+      if (!signal?.aborted) {
+        setCurrentUser(null);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadCurrentUser(controller.signal);
+
+    const handleAuthChanged = () => {
+      loadCurrentUser().catch(() => setCurrentUser(null));
+    };
+
+    window.addEventListener("gameclip:auth-changed", handleAuthChanged);
+    return () => {
+      controller.abort();
+      window.removeEventListener("gameclip:auth-changed", handleAuthChanged);
+    };
+  }, [loadCurrentUser]);
 
   const setFile = (file: File) => {
     setUploadMessage("");
@@ -81,7 +134,7 @@ export default function UploadPanel() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !title || !gameName || uploadGenreTags.length === 0 || !nickname) return;
+    if (!selectedFile || !title || !gameName || uploadGenreTags.length === 0 || (needsManualIdentity && !nickname.trim())) return;
 
     setIsUploading(true);
     setUploadMessage("");
@@ -92,14 +145,18 @@ export default function UploadPanel() {
     body.append("title", title);
     body.append("gameName", gameName);
     body.append("genreTags", JSON.stringify(uploadGenreTags));
-    body.append("uploader", nickname);
-    if (password.trim()) {
+    body.append("isAnonymous", String(isAnonymous));
+    if (needsManualIdentity) {
+      body.append("uploader", nickname.trim());
+    }
+    if (needsManualIdentity && password.trim()) {
       body.append("password", password);
     }
 
     try {
       const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos`, {
         method: "POST",
+        credentials: "include",
         body,
       });
       const payload = (await readPayload(response)) as UploadResponse;
@@ -120,6 +177,7 @@ export default function UploadPanel() {
       setIsCustomGenreOpen(false);
       setNickname("");
       setPassword("");
+      setIsAnonymous(false);
       window.dispatchEvent(new Event("gameclip:videos-changed"));
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "업로드에 실패했습니다.");
@@ -276,36 +334,66 @@ export default function UploadPanel() {
         )}
       </div>
 
-      {/* Nickname */}
-      <div className="mb-4">
-        <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
-          닉네임
-        </label>
-        <input
-          type="text"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          placeholder="업로드에 표시될 닉네임"
-          disabled={isUploading}
-          className="w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
-        />
-      </div>
+      {currentUser ? (
+        <div className="mb-4 rounded-xl border border-white/10 bg-[#18181b] px-3 py-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#27272a]">
+              {currentUser.avatarUrl ? (
+                <img src={currentUser.avatarUrl} alt={currentUser.nickname} className="h-full w-full object-cover" />
+              ) : (
+                <i className="ri-user-line text-sm text-white/80" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-white">{currentUser.nickname}</p>
+              <p className="truncate text-[10px] text-[#a1a1aa]">@{currentUser.username} 계정으로 업로드</p>
+            </div>
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-xs font-medium text-[#a1a1aa]">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(event) => setIsAnonymous(event.target.checked)}
+              disabled={isUploading}
+              className="h-4 w-4 accent-sky-500"
+            />
+            익명으로 업로드
+          </label>
+        </div>
+      ) : null}
 
-      {/* Password */}
-      <div className="mb-4">
-        <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
-          비밀번호 (선택)
-        </label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="수정/삭제 보호가 필요하면 입력"
-          autoComplete="new-password"
-          disabled={isUploading}
-          className="w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
-        />
-      </div>
+      {needsManualIdentity && (
+        <>
+          <div className="mb-4">
+            <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
+              닉네임
+            </label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={currentUser ? "익명 업로드에 표시될 닉네임" : "업로드에 표시될 닉네임"}
+              disabled={isUploading}
+              className="w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-xs text-[#a1a1aa] mb-1.5 font-medium">
+              비밀번호 (선택)
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="수정/삭제 보호가 필요하면 입력"
+              autoComplete="new-password"
+              disabled={isUploading}
+              className="w-full bg-[#18181b] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
+            />
+          </div>
+        </>
+      )}
 
       {(uploadMessage || uploadError) && (
         <p
