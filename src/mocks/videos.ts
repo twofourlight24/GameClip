@@ -9,6 +9,9 @@ export interface Video {
   views: string;
   duration: string;
   uploader: string;
+  isAnonymous?: boolean;
+  canEdit?: boolean;
+  hasPassword?: boolean;
   avatar: string;
   likes: number;
   likedByMe?: boolean;

@@ -18,6 +18,9 @@ type UploadedVideo = {
   genreTags?: string[];
   uploader?: string;
   avatarUrl?: string | null;
+  isAnonymous?: boolean;
+  canEdit?: boolean;
+  hasPassword?: boolean;
   size?: number;
   videoUrl: string;
   likes?: number;
@@ -58,7 +61,12 @@ export default function ReelsFeed({ selectedGameName, onGameNameChange: _onGameN
         throw new Error(!Array.isArray(payload) && payload.message ? payload.message : "영상을 불러오지 못했습니다.");
       }
 
-      setVideos(Array.isArray(payload) ? payload.map(toFeedVideo) : []);
+      const nextVideos = Array.isArray(payload) ? payload.map(toFeedVideo) : [];
+      setVideos(nextVideos);
+      setActiveVideo((currentActiveVideo) => {
+        if (!currentActiveVideo) return currentActiveVideo;
+        return nextVideos.find((video) => video.id === currentActiveVideo.id) || null;
+      });
     } catch (error) {
       if (options?.signal?.aborted) return;
       setVideos([]);
@@ -202,6 +210,9 @@ function toFeedVideo(video: UploadedVideo): Video {
     views: "0",
     duration: "재생",
     uploader: video.uploader || "익명",
+    isAnonymous: video.isAnonymous ?? false,
+    canEdit: video.canEdit ?? true,
+    hasPassword: video.hasPassword ?? false,
     avatar: video.avatarUrl || "",
     likes: video.likes ?? 0,
     likedByMe: video.likedByMe ?? false,

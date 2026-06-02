@@ -16,6 +16,9 @@ type UploadedVideo = {
   genreTags?: string[];
   uploader?: string;
   avatarUrl?: string | null;
+  isAnonymous?: boolean;
+  canEdit?: boolean;
+  hasPassword?: boolean;
   videoUrl: string;
   likes?: number;
   comments?: number;
@@ -201,6 +204,9 @@ function toRankVideo(video: UploadedVideo): Video {
     views: "0",
     duration: "재생",
     uploader: video.uploader || "익명",
+    isAnonymous: video.isAnonymous ?? false,
+    canEdit: video.canEdit ?? true,
+    hasPassword: video.hasPassword ?? false,
     avatar: video.avatarUrl || "",
     likes: video.likes ?? 0,
     comments: video.comments ?? 0,

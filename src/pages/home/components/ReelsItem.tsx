@@ -201,6 +201,24 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
     }, 1800);
   }, []);
 
+  const openEditPopup = () => {
+    if (video.canEdit === false) {
+      showLikeMessage("본인 계정으로 올린 영상만 수정할 수 있습니다.");
+      return;
+    }
+
+    setIsEditOpen(true);
+  };
+
+  const openDeletePopup = () => {
+    if (video.canEdit === false) {
+      showLikeMessage("본인 계정으로 올린 영상만 삭제할 수 있습니다.");
+      return;
+    }
+
+    setIsDeleteOpen(true);
+  };
+
   const toggleLike = async () => {
     if (isLikeSaving) {
       return;
@@ -758,8 +776,8 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
         isOpen={isMoreOpen}
         onClose={() => setIsMoreOpen(false)}
         onReport={() => setIsReportOpen(true)}
-        onEdit={() => setIsEditOpen(true)}
-        onDelete={() => setIsDeleteOpen(true)}
+        onEdit={openEditPopup}
+        onDelete={openDeletePopup}
       />
 
       {/* Report Popup */}
@@ -780,6 +798,7 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
           genreTag: video.genreTag,
           genreTags: video.genreTags,
           uploader: video.uploader,
+          isAnonymous: video.isAnonymous,
         }}
       />
 
@@ -790,6 +809,7 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
         onDeleted={() => onDeleted?.(video.id)}
         videoId={video.id}
         videoTitle={video.title}
+        isAnonymous={video.isAnonymous}
       />
     </div>
   );

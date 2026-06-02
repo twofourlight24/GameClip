@@ -11,6 +11,7 @@ interface EditPopupProps {
     genreTag?: string;
     genreTags?: string[];
     uploader: string;
+    isAnonymous?: boolean;
   };
 }
 
@@ -21,6 +22,7 @@ type VideoPayload = {
   genreTag?: string;
   genreTags?: string[];
   uploader?: string;
+  isAnonymous?: boolean;
   message?: string;
 };
 
@@ -67,23 +69,28 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
   }, [isOpen, video]);
 
   const handleSave = async () => {
-    if (!title.trim() || !gameName.trim() || !uploader.trim()) return;
+    if (!title.trim() || !gameName.trim() || (video.isAnonymous && !uploader.trim())) return;
 
     setIsSaving(true);
     setError("");
 
     try {
+      const body: Record<string, string | string[]> = {
+        title,
+        gameName,
+        genreTags: genreTag.split(",").map((tag) => tag.trim()).filter(Boolean),
+      };
+
+      if (video.isAnonymous) {
+        body.uploader = uploader;
+        body.password = password;
+      }
+
       const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos/${video.id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          gameName,
-          genreTags: genreTag.split(",").map((tag) => tag.trim()).filter(Boolean),
-          uploader,
-          password,
-        }),
+        body: JSON.stringify(body),
       });
       const payload = (await readPayload(response)) as VideoPayload;
 
@@ -165,32 +172,39 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
               />
             </div>
 
-            {/* Uploader */}
-            <div className="space-y-1.5">
-              <label className="text-[#a1a1aa] text-xs font-medium">닉네임</label>
-              <input
-                type="text"
-                value={uploader}
-                onChange={(e) => setUploader(e.target.value)}
-                placeholder="업로드에 표시될 닉네임"
-                disabled={isSaving}
-                className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
-              />
-            </div>
+            {video.isAnonymous ? (
+              <div className="space-y-1.5">
+                <label className="text-[#a1a1aa] text-xs font-medium">익명 표시 닉네임</label>
+                <input
+                  type="text"
+                  value={uploader}
+                  onChange={(e) => setUploader(e.target.value)}
+                  placeholder="익명 업로드에 표시될 닉네임"
+                  disabled={isSaving}
+                  className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
+                />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-[#27272a] px-3 py-2.5">
+                <p className="text-[10px] font-medium text-[#a1a1aa]">계정 닉네임</p>
+                <p className="mt-1 truncate text-xs font-semibold text-white">{uploader || "익명"}</p>
+              </div>
+            )}
 
-            {/* Password */}
-            <div className="space-y-1.5">
-              <label className="text-[#a1a1aa] text-xs font-medium">비밀번호</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="비밀번호가 설정된 영상이면 입력"
-                autoComplete="current-password"
-                disabled={isSaving}
-                className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
-              />
-            </div>
+            {video.isAnonymous && (
+              <div className="space-y-1.5">
+                <label className="text-[#a1a1aa] text-xs font-medium">비밀번호</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="비밀번호가 설정된 영상이면 입력"
+                  autoComplete="current-password"
+                  disabled={isSaving}
+                  className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-emerald-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
+                />
+              </div>
+            )}
 
             {error && (
               <p
@@ -212,7 +226,7 @@ export default function EditPopup({ isOpen, onClose, onUpdated, video }: EditPop
               </button>
               <button
                 onClick={handleSave}
-                disabled={!title.trim() || !gameName.trim() || !uploader.trim() || isSaving}
+                disabled={!title.trim() || !gameName.trim() || (video.isAnonymous && !uploader.trim()) || isSaving}
                 className="flex-1 py-2.5 rounded-xl bg-emerald-500/90 hover:bg-emerald-500 disabled:bg-[#3f3f46] disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
               >
                 {isSaving ? "저장 중..." : "저장"}

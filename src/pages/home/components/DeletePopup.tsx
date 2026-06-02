@@ -6,6 +6,7 @@ interface DeletePopupProps {
   onDeleted?: () => void;
   videoId: string;
   videoTitle: string;
+  isAnonymous?: boolean;
 }
 
 const apiPort = "4000";
@@ -13,7 +14,7 @@ const defaultApiBaseUrl =
   import.meta.env.VITE_UPLOAD_API_BASE_URL ||
   `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
 
-export default function DeletePopup({ isOpen, onClose, onDeleted, videoId, videoTitle }: DeletePopupProps) {
+export default function DeletePopup({ isOpen, onClose, onDeleted, videoId, videoTitle, isAnonymous = false }: DeletePopupProps) {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -122,18 +123,20 @@ export default function DeletePopup({ isOpen, onClose, onDeleted, videoId, video
             <p className="text-[#71717a] text-[11px] truncate">{videoTitle}</p>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[#a1a1aa] text-xs font-medium">비밀번호</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="비밀번호가 설정된 영상이면 입력"
-              autoComplete="current-password"
-              disabled={isDeleting || Boolean(message)}
-              className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-amber-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
-            />
-          </div>
+          {isAnonymous && (
+            <div className="space-y-1.5">
+              <label className="text-[#a1a1aa] text-xs font-medium">비밀번호</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="비밀번호가 설정된 영상이면 입력"
+                autoComplete="current-password"
+                disabled={isDeleting || Boolean(message)}
+                className="w-full bg-[#27272a] text-white text-xs px-3 py-2.5 rounded-xl border border-white/10 focus:border-amber-500/50 focus:outline-none placeholder:text-[#52525b] transition-colors"
+              />
+            </div>
+          )}
 
           {(message || error) && (
             <p
