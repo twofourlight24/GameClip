@@ -111,9 +111,17 @@ export default function RightSidebar({ onGameClick }: RightSidebarProps) {
               const isTop3 = rank <= 3;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={video.id}
-                  className="group flex items-center gap-2.5 p-2 rounded-lg hover:bg-[#18181b] transition-all duration-200 cursor-pointer"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("gameclip:open-video", {
+                        detail: { video, videoId: video.id },
+                      }),
+                    );
+                  }}
+                  className="group flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-all duration-200 hover:bg-[#18181b]"
                 >
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
@@ -158,7 +166,7 @@ export default function RightSidebar({ onGameClick }: RightSidebarProps) {
                       {formatLikes(video.likes)}
                     </span>
                   </div>
-                </div>
+                </button>
               );
             }) : (
               <p className="px-1 py-3 text-[11px] text-[#71717a]">아직 인기 클립이 없습니다</p>

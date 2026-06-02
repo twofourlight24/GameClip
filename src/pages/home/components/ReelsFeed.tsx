@@ -98,6 +98,24 @@ export default function ReelsFeed({ selectedGameName, onGameNameChange: _onGameN
     };
   }, [loadVideos]);
 
+  useEffect(() => {
+    const handleOpenVideo = (event: Event) => {
+      const detail = (event as CustomEvent<{ video?: Video; videoId?: string }>).detail;
+      const videoId = detail?.videoId;
+      if (!videoId) return;
+
+      const nextActiveVideo = videos.find((video) => video.id === videoId) || detail?.video;
+      if (nextActiveVideo) {
+        setActiveVideo(nextActiveVideo);
+      }
+    };
+
+    window.addEventListener("gameclip:open-video", handleOpenVideo);
+    return () => {
+      window.removeEventListener("gameclip:open-video", handleOpenVideo);
+    };
+  }, [videos]);
+
   const handleVideoUpdated = (updatedVideo: Video) => {
     setActiveVideo(updatedVideo);
     setVideos((currentVideos) =>
