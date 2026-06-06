@@ -809,7 +809,7 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
             </div>
 
             {/* Title */}
-            <h2 className="mb-3 max-w-[920px] text-base font-extrabold leading-snug text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-3 sm:text-lg md:text-xl">
+            <h2 className="mb-3 max-w-[960px] text-xl font-extrabold leading-snug text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)] line-clamp-3 sm:text-2xl md:text-3xl">
               {video.title}
             </h2>
 

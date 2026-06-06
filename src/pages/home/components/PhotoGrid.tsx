@@ -32,7 +32,7 @@ export default function PhotoGrid({ videos, onVideoClick }: PhotoGridProps) {
             />
           )}
 
-          <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-2 pt-8">
+          <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/35 to-transparent p-2.5 pt-9">
             <div className="mb-1.5 flex min-w-0 items-center gap-1.5">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-[#27272a]">
                 <i className="ri-user-line text-[13px] text-white/80" />
@@ -47,11 +47,11 @@ export default function PhotoGrid({ videos, onVideoClick }: PhotoGridProps) {
                   />
                 ) : null}
               </div>
-              <p className="min-w-0 truncate text-[10px] font-semibold text-white/85 drop-shadow">
+              <p className="min-w-0 truncate text-[11px] font-semibold text-white/85 drop-shadow">
                 {video.uploader}
               </p>
             </div>
-            <p className="line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow">
+            <p className="line-clamp-2 text-[13px] font-bold leading-snug text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.75)] md:text-sm">
               {video.title}
             </p>
             <div className="mt-1 flex items-end justify-between gap-2">
