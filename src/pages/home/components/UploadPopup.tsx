@@ -31,7 +31,8 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [customGenre, setCustomGenre] = useState("");
+  const [customGenres, setCustomGenres] = useState<string[]>([]);
+  const [customGenreDraft, setCustomGenreDraft] = useState("");
   const [isCustomGenreOpen, setIsCustomGenreOpen] = useState(false);
   const [selectedGameName, setSelectedGameName] = useState<string | null>(null);
   const [customGameName, setCustomGameName] = useState("");
@@ -47,21 +48,21 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
   const selectedGenreNames = selectedGenres
     .map((genreId) => gameGenres.find((genre) => genre.id === genreId)?.name || genreId)
     .filter(Boolean);
-  const uploadGenreTags = [...selectedGenreNames, customGenre.trim()].filter(Boolean);
+  const uploadGenreTags = [...selectedGenreNames, ...customGenres].filter(Boolean);
   const uploadGameName = (isCustomGameOpen ? customGameName : selectedGameName || "").trim();
   const filteredGames = useMemo(() => {
     const query = gameQuery.trim().toLowerCase();
     if (!query) return trendingGames;
     return trendingGames.filter((game) => game.name.toLowerCase().includes(query));
   }, [gameQuery]);
-  const canUpload = Boolean(
-    selectedFile &&
-      title &&
-      uploadGenreTags.length > 0 &&
-      uploadGameName &&
-      (!needsManualIdentity || nickname) &&
-      !isUploading
-  );
+  const uploadBlockReasons = [
+    !selectedFile ? "업로드할 동영상을 선택해 주세요." : "",
+    !title.trim() ? "영상 제목을 입력해 주세요." : "",
+    !uploadGameName ? "게임을 선택하거나 직접 입력해 주세요." : "",
+    uploadGenreTags.length === 0 ? "장르 태그를 하나 이상 선택해 주세요." : "",
+    needsManualIdentity && !nickname.trim() ? "표시될 닉네임을 입력해 주세요." : "",
+  ].filter(Boolean);
+  const canUpload = uploadBlockReasons.length === 0 && !isUploading;
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -86,7 +87,8 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
     setSelectedFile(null);
     setTitle("");
     setSelectedGenres([]);
-    setCustomGenre("");
+    setCustomGenres([]);
+    setCustomGenreDraft("");
     setIsCustomGenreOpen(false);
     setSelectedGameName(null);
     setCustomGameName("");
@@ -139,22 +141,34 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
     }
   };
 
+  const addCustomGenre = () => {
+    const nextGenre = customGenreDraft.trim();
+    if (!nextGenre) return;
+
+    setCustomGenres((currentGenres) =>
+      currentGenres.some((genre) => genre.toLowerCase() === nextGenre.toLowerCase())
+        ? currentGenres
+        : [...currentGenres, nextGenre],
+    );
+    setCustomGenreDraft("");
+  };
+
   const handleUpload = async () => {
-    if (!selectedFile || !title || uploadGenreTags.length === 0 || !uploadGameName || (needsManualIdentity && !nickname)) return;
+    if (!canUpload || !selectedFile) return;
 
     setIsUploading(true);
     setUploadError("");
 
     const body = new FormData();
     body.append("video", selectedFile);
-    body.append("title", title);
+    body.append("title", title.trim());
     body.append("gameName", uploadGameName);
     body.append("genreTags", JSON.stringify(uploadGenreTags));
     if (isAnonymous) {
       body.append("isAnonymous", "true");
     }
     if (needsManualIdentity) {
-      body.append("uploader", nickname);
+      body.append("uploader", nickname.trim());
     }
     if (needsManualIdentity && password.trim()) {
       body.append("password", password);
@@ -266,42 +280,19 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
             <label className="block text-xs text-[#a1a1aa] mb-2 font-medium">
               게임 이름
             </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#71717a]" />
-                <input
-                  type="text"
-                  value={gameQuery}
-                  onChange={(event) => setGameQuery(event.target.value)}
-                  placeholder="게임 검색"
-                  disabled={isUploading || isCustomGameOpen}
-                  className="w-full bg-[#27272a] border border-[#3f3f46] rounded-lg py-2.5 pl-8 pr-3 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors disabled:opacity-60"
-                />
-              </div>
-              <button
-                type="button"
-                disabled={isUploading}
-                onClick={() => {
-                  if (isCustomGameOpen) {
-                    setCustomGameName("");
-                  }
-                  setIsCustomGameOpen((isOpen) => !isOpen);
-                  setSelectedGameName(null);
-                  setGameQuery("");
-                }}
-                aria-label="게임 이름 직접 입력"
-                className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border text-lg transition-all ${
-                  isCustomGameOpen
-                    ? "border-sky-400 bg-sky-500/90 text-white shadow-lg shadow-sky-500/20"
-                    : "border-[#3f3f46] bg-[#27272a] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
-                }`}
-              >
-                <i className="ri-add-line" />
-              </button>
+            <div className="relative">
+              <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#71717a]" />
+              <input
+                type="text"
+                value={gameQuery}
+                onChange={(event) => setGameQuery(event.target.value)}
+                placeholder="게임 검색"
+                disabled={isUploading || isCustomGameOpen}
+                className="w-full bg-[#27272a] border border-[#3f3f46] rounded-lg py-2.5 pl-8 pr-3 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors disabled:opacity-60"
+              />
             </div>
-            {!isCustomGameOpen && (
-              <div className="mt-2 grid max-h-32 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-white/10 bg-[#202024] p-2 scrollbar-hide">
-                {filteredGames.map((game) => (
+            <div className="mt-2 grid max-h-36 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-white/10 bg-[#202024] p-2 scrollbar-hide">
+              {filteredGames.map((game) => (
                 <button
                   key={game.id}
                   type="button"
@@ -328,18 +319,48 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
                     <span className="truncate">{game.name}</span>
                 </button>
               ))}
-              </div>
-            )}
-            {isCustomGameOpen && (
-              <input
-                type="text"
-                value={customGameName}
-                onChange={(event) => setCustomGameName(event.target.value)}
-                placeholder="게임 이름을 직접 입력하세요"
-                disabled={isUploading}
-                className="mt-2 w-full bg-[#27272a] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
-              />
-            )}
+              {isCustomGameOpen ? (
+                <div className="col-span-2 flex min-w-0 items-center gap-2 rounded-lg border border-sky-400/70 bg-[#27272a] px-2 py-2">
+                  <i className="ri-add-line shrink-0 text-sky-300" />
+                  <input
+                    type="text"
+                    value={customGameName}
+                    onChange={(event) => setCustomGameName(event.target.value)}
+                    placeholder="직접 입력"
+                    disabled={isUploading}
+                    autoFocus
+                    className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-[#f4f4f5] placeholder-[#71717a] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomGameOpen(false);
+                      setCustomGameName("");
+                    }}
+                    disabled={isUploading}
+                    aria-label="직접 입력 취소"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#a1a1aa] hover:bg-white/10 hover:text-white"
+                  >
+                    <i className="ri-close-line" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => {
+                    setIsCustomGameOpen(true);
+                    setSelectedGameName(null);
+                    setGameQuery("");
+                  }}
+                  aria-label="게임 이름 직접 입력"
+                  className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#3f3f46] bg-[#27272a] px-2 py-2 text-xs font-semibold text-[#a1a1aa] transition-all hover:border-sky-400/70 hover:text-[#f4f4f5]"
+                >
+                  <i className="ri-add-line text-sm" />
+                  <span>직접 추가</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div>
@@ -370,12 +391,54 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
                     {genre.name}
                   </button>
                 ))}
+                {customGenres.map((genre) => (
+                  <button
+                    key={genre}
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => {
+                      setCustomGenres((currentGenres) => currentGenres.filter((currentGenre) => currentGenre !== genre));
+                    }}
+                    className="flex items-center gap-1 rounded-full border border-sky-400/40 bg-sky-500/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-sky-500/10 transition-all hover:bg-sky-400"
+                  >
+                    <span>{genre}</span>
+                    <i className="ri-close-line text-sm" />
+                  </button>
+                ))}
+                {isCustomGenreOpen && (
+                  <div className="flex h-[30px] min-w-[132px] items-center gap-1.5 rounded-full border border-sky-400/70 bg-[#27272a] pl-3 pr-1">
+                    <input
+                      type="text"
+                      value={customGenreDraft}
+                      onChange={(event) => setCustomGenreDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addCustomGenre();
+                        }
+                      }}
+                      placeholder="태그 입력"
+                      disabled={isUploading}
+                      autoFocus
+                      className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-[#f4f4f5] placeholder-[#71717a] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomGenre}
+                      disabled={isUploading || !customGenreDraft.trim()}
+                      aria-label="장르 태그 추가"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-sky-200 hover:bg-sky-500/30 disabled:text-[#71717a]"
+                    >
+                      <i className="ri-check-line" />
+                    </button>
+                  </div>
+                )}
                 <button
                   type="button"
                   disabled={isUploading}
                   onClick={() => {
                     if (isCustomGenreOpen) {
-                      setCustomGenre("");
+                      setCustomGenreDraft("");
                     }
                     setIsCustomGenreOpen((isOpen) => !isOpen);
                   }}
@@ -386,38 +449,35 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
                       : "border-[#3f3f46] bg-[#27272a] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
                   }`}
                 >
-                  <i className="ri-add-line" />
+                  <i className={isCustomGenreOpen ? "ri-close-line" : "ri-add-line"} />
                 </button>
               </div>
             </div>
-            {isCustomGenreOpen && (
-              <input
-                type="text"
-                value={customGenre}
-                onChange={(event) => setCustomGenre(event.target.value)}
-                placeholder="장르 태그를 직접 입력하세요"
-                disabled={isUploading}
-                className="mt-2 w-full bg-[#27272a] border border-[#3f3f46] rounded-lg px-3 py-2.5 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-sky-400 transition-colors"
-              />
-            )}
           </div>
 
           {currentUser ? (
             <div className="rounded-xl border border-white/10 bg-[#27272a] px-3 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#18181b]">
-                  {currentUser.avatarUrl ? (
+                  {isAnonymous ? (
+                    <i className="ri-user-unfollow-line text-white/80" />
+                  ) : currentUser.avatarUrl ? (
                     <img src={currentUser.avatarUrl} alt={currentUser.nickname} className="h-full w-full object-cover" />
                   ) : (
                     <i className="ri-user-line text-white/80" />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">{currentUser.nickname}</p>
-                  <p className="truncate text-xs text-[#a1a1aa]">@{currentUser.username} 계정으로 업로드</p>
+                  <p className="truncate text-sm font-semibold text-white">
+                    {isAnonymous ? "익명 업로드" : currentUser.nickname}
+                  </p>
+                  <p className="truncate text-xs text-[#a1a1aa]">
+                    {isAnonymous ? "계정 정보는 영상에 표시되지 않습니다." : `@${currentUser.username} 계정으로 업로드`}
+                  </p>
                 </div>
               </div>
-              <label className="mt-3 flex items-center gap-2 text-xs font-medium text-[#a1a1aa]">
+              <label className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#18181b] px-3 py-2 text-xs font-medium text-[#a1a1aa]">
+                <span>익명으로 업로드</span>
                 <input
                   type="checkbox"
                   checked={isAnonymous}
@@ -425,7 +485,6 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
                   disabled={isUploading}
                   className="h-4 w-4 accent-sky-500"
                 />
-                익명으로 업로드
               </label>
               {isAnonymous && (
                 <div className="mt-3 grid gap-3">
@@ -500,6 +559,11 @@ export default function UploadPopup({ isOpen, onClose, onUploadSuccess, currentU
         </div>
 
         <div className="px-4 py-3 border-t border-white/10 shrink-0">
+          {!isUploading && uploadBlockReasons.length > 0 && (
+            <p className="mb-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-100">
+              {uploadBlockReasons[0]}
+            </p>
+          )}
           <button
             type="button"
             onClick={handleUpload}
