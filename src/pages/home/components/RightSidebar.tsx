@@ -67,8 +67,8 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
     return [...new Set(videos.map((video) => video.gameName).filter((gameName) => gameName && !knownGameNames.has(gameName)))]
       .sort((a, b) => a.localeCompare(b, "ko"));
   }, [knownGameNames, videos]);
-  const topGames = useMemo(() => trendingGames.slice(0, 9), []);
-  const moreGames = useMemo(() => trendingGames.slice(9), []);
+  const topGames = useMemo(() => trendingGames.slice(0, 6), []);
+  const moreGames = useMemo(() => trendingGames.slice(6), []);
   const rankedVideos = useMemo(() => {
     const rankingSource = selectedGameName
       ? videos.filter((video) => video.gameName === selectedGameName)
@@ -81,7 +81,11 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
     <aside className="h-[calc(100dvh-32px)] w-[240px] shrink-0 overflow-hidden xl:w-[260px]">
       <div className="sticky top-4 flex h-full flex-col gap-4">
         {/* Trending Games */}
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4 scrollbar-hide">
+        <div
+          className={`shrink-0 overflow-y-auto rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4 scrollbar-hide ${
+            isGameListExpanded ? "max-h-[45dvh]" : ""
+          }`}
+        >
           <h3 className="text-[#f4f4f5] font-bold text-sm mb-3 flex items-center gap-2">
             <i className="ri-fire-fill text-sky-400"></i>
             게임 목록
@@ -137,14 +141,14 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
         </div>
 
         {/* Video Rankings */}
-        <div className="shrink-0 rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4">
+        <div className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4">
           <h3 className="mb-3 flex min-w-0 items-center gap-2 text-sm font-bold text-[#f4f4f5]">
             <i className="ri-trophy-fill shrink-0 text-amber-400"></i>
             <span className="min-w-0 truncate">
               {selectedGameName ? `${selectedGameName} 인기 클립` : "인기 클립 순위"}
             </span>
           </h3>
-          <div className="space-y-1.5">
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
             {rankedVideos.length > 0 ? rankedVideos.map((video, index) => {
               const rank = index + 1;
               const isTop3 = rank <= 3;
