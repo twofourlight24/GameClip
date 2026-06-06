@@ -26,6 +26,7 @@ type UploadedVideo = {
 
 interface RightSidebarProps {
   onGameClick?: (gameName: string) => void;
+  selectedGameName?: string | null;
 }
 
 const rankColors: Record<number, string> = {
@@ -34,8 +35,9 @@ const rankColors: Record<number, string> = {
   3: "text-orange-400 bg-orange-400/10",
 };
 
-export default function RightSidebar({ onGameClick }: RightSidebarProps) {
+export default function RightSidebar({ onGameClick, selectedGameName = null }: RightSidebarProps) {
   const [videos, setVideos] = useState<Video[]>([]);
+  const [isGameListExpanded, setIsGameListExpanded] = useState(false);
 
   const loadVideos = useCallback(async () => {
     const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos`, {
@@ -60,50 +62,87 @@ export default function RightSidebar({ onGameClick }: RightSidebarProps) {
     };
   }, [loadVideos]);
 
-  const rankedVideos = useMemo(
-    () => [...videos].sort((a, b) => b.likes - a.likes).slice(0, 8),
-    [videos],
-  );
+  const knownGameNames = useMemo(() => new Set(trendingGames.map((game) => game.name)), []);
+  const customGameNames = useMemo(() => {
+    return [...new Set(videos.map((video) => video.gameName).filter((gameName) => gameName && !knownGameNames.has(gameName)))]
+      .sort((a, b) => a.localeCompare(b, "ko"));
+  }, [knownGameNames, videos]);
+  const topGames = useMemo(() => trendingGames.slice(0, 9), []);
+  const moreGames = useMemo(() => trendingGames.slice(9), []);
+  const rankedVideos = useMemo(() => {
+    const rankingSource = selectedGameName
+      ? videos.filter((video) => video.gameName === selectedGameName)
+      : videos;
+
+    return [...rankingSource].sort((a, b) => b.likes - a.likes).slice(0, 8);
+  }, [selectedGameName, videos]);
 
   return (
-    <aside className="w-[240px] xl:w-[260px] shrink-0 max-h-[calc(100dvh-32px)] overflow-y-auto">
-      <div className="sticky top-4 space-y-4">
+    <aside className="h-[calc(100dvh-32px)] w-[240px] shrink-0 overflow-hidden xl:w-[260px]">
+      <div className="sticky top-4 flex h-full flex-col gap-4">
         {/* Trending Games */}
-        <div className="bg-[#27272a] rounded-2xl border border-[#3f3f46] p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4 scrollbar-hide">
           <h3 className="text-[#f4f4f5] font-bold text-sm mb-3 flex items-center gap-2">
             <i className="ri-fire-fill text-sky-400"></i>
-            인기 게임
+            게임 목록
           </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {trendingGames.map((game) => (
-              <button
-                key={game.id}
-                onClick={() => onGameClick?.(game.name)}
-                className="group flex flex-col items-center gap-1.5 p-1.5 rounded-xl hover:bg-[#18181b] transition-all duration-200"
-              >
-                <div
-                  className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#3f3f46] group-hover:border-current transition-all duration-300"
-                  style={{ color: game.color }}
-                >
-                  <img
-                    src={game.icon}
-                    alt={game.name}
-                    className="w-full h-full object-cover"
-                  />
+          <GameGrid games={topGames} selectedGameName={selectedGameName} onGameClick={onGameClick} />
+
+          {(moreGames.length > 0 || customGameNames.length > 0) && (
+            <div className="mt-2">
+              {isGameListExpanded && (
+                <div>
+                  {moreGames.length > 0 && (
+                    <GameGrid games={moreGames} selectedGameName={selectedGameName} onGameClick={onGameClick} />
+                  )}
+
+                  {customGameNames.length > 0 && (
+                    <div className="mt-3 rounded-xl border border-white/10 bg-[#202024] p-2">
+                      <div className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-bold text-[#a1a1aa]">
+                        <i className="ri-price-tag-3-line text-sky-400" />
+                        <span>기타</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {customGameNames.map((gameName) => (
+                          <button
+                            key={gameName}
+                            type="button"
+                            onClick={() => onGameClick?.(gameName)}
+                            className={`max-w-full rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                              selectedGameName === gameName
+                                ? "border-sky-400 bg-sky-500/20 text-sky-100"
+                                : "border-[#3f3f46] bg-[#18181b] text-[#a1a1aa] hover:border-[#52525b] hover:text-[#f4f4f5]"
+                            }`}
+                          >
+                            <span className="block max-w-[150px] truncate">{gameName}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <span className="text-[#a1a1aa] text-[10px] font-medium text-center leading-tight group-hover:text-[#f4f4f5] transition-colors">
-                  {game.name.length > 5 ? game.name.slice(0, 4) + ".." : game.name}
-                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsGameListExpanded((isExpanded) => !isExpanded)}
+                className="mt-2 flex h-8 w-full items-center justify-center rounded-xl border border-white/10 bg-[#202024] text-[#a1a1aa] transition-colors hover:border-[#52525b] hover:text-white"
+                aria-expanded={isGameListExpanded}
+                aria-label={isGameListExpanded ? "게임 목록 접기" : "게임 목록 더 보기"}
+              >
+                <i className={`${isGameListExpanded ? "ri-arrow-up-s-line" : "ri-arrow-down-s-line"} text-xl`} />
               </button>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Video Rankings */}
-        <div className="bg-[#27272a] rounded-2xl border border-[#3f3f46] p-4">
-          <h3 className="text-[#f4f4f5] font-bold text-sm mb-3 flex items-center gap-2">
-            <i className="ri-trophy-fill text-amber-400"></i>
-            인기 클립 순위
+        <div className="shrink-0 rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4">
+          <h3 className="mb-3 flex min-w-0 items-center gap-2 text-sm font-bold text-[#f4f4f5]">
+            <i className="ri-trophy-fill shrink-0 text-amber-400"></i>
+            <span className="min-w-0 truncate">
+              {selectedGameName ? `${selectedGameName} 인기 클립` : "인기 클립 순위"}
+            </span>
           </h3>
           <div className="space-y-1.5">
             {rankedVideos.length > 0 ? rankedVideos.map((video, index) => {
@@ -169,7 +208,9 @@ export default function RightSidebar({ onGameClick }: RightSidebarProps) {
                 </button>
               );
             }) : (
-              <p className="px-1 py-3 text-[11px] text-[#71717a]">아직 인기 클립이 없습니다</p>
+              <p className="px-1 py-3 text-[11px] text-[#71717a]">
+                {selectedGameName ? "선택한 게임의 인기 클립이 없습니다" : "아직 인기 클립이 없습니다"}
+              </p>
             )}
           </div>
         </div>
@@ -188,6 +229,67 @@ export default function RightSidebar({ onGameClick }: RightSidebarProps) {
       </div>
     </aside>
   );
+}
+
+function GameGrid({
+  games,
+  selectedGameName,
+  onGameClick,
+}: {
+  games: typeof trendingGames;
+  selectedGameName: string | null;
+  onGameClick?: (gameName: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {games.map((game) => (
+        <button
+          key={game.id}
+          onClick={() => onGameClick?.(game.name)}
+          className={`group flex min-w-0 flex-col items-center gap-1.5 rounded-xl p-1.5 transition-all duration-200 hover:bg-[#18181b] ${
+            selectedGameName === game.name ? "bg-[#18181b] ring-1 ring-sky-400/50" : ""
+          }`}
+        >
+          <GameIcon name={game.name} color={game.color} src={game.icon} />
+          <span className="w-full truncate text-center text-[10px] font-medium leading-tight text-[#a1a1aa] transition-colors group-hover:text-[#f4f4f5]">
+            {game.name}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function GameIcon({ name, color, src }: { name: string; color: string; src: string }) {
+  const [hasImageError, setHasImageError] = useState(false);
+  const initials = getGameInitials(name);
+
+  return (
+    <div
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#3f3f46] bg-[#18181b] transition-all duration-300 group-hover:border-current"
+      style={{ color }}
+    >
+      {!hasImageError && src ? (
+        <img
+          src={src}
+          alt={name}
+          onError={() => setHasImageError(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-center text-[11px] font-black leading-none text-white">
+          {initials}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function getGameInitials(name: string) {
+  const compactName = name.replace(/\s+/g, "");
+  if (!compactName) return "?";
+  if (/^[a-z0-9!]+$/i.test(compactName)) return compactName.slice(0, 3).toUpperCase();
+  return compactName.slice(0, 2);
 }
 
 function formatLikes(likes: number) {

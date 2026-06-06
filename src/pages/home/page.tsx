@@ -45,7 +45,7 @@ export default function Home() {
 
           {/* Right Sidebar */}
           <div className="hidden lg:block shrink-0 py-4">
-            <RightSidebar onGameClick={handleGameClick} />
+            <RightSidebar onGameClick={handleGameClick} selectedGameName={selectedGameName} />
           </div>
         </div>
       </main>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import AccountSettingsPopup from "./AccountSettingsPopup";
 import LoginSignupPopup from "./LoginSignupPopup";
-import NotificationPopup from "./NotificationPopup";
 import UploadPopup from "./UploadPopup";
 
 const apiPort = "4000";
@@ -11,7 +10,6 @@ const defaultApiBaseUrl =
 
 const navItems = [
   { id: "home", label: "홈", icon: "ri-home-5-line", activeIcon: "ri-home-5-fill" },
-  { id: "notifications", label: "알림", icon: "ri-notification-3-line", activeIcon: "ri-notification-3-fill" },
   { id: "upload", label: "업로드", icon: "ri-add-circle-line", activeIcon: "ri-add-circle-fill" },
 ];
 
@@ -32,7 +30,6 @@ type AuthUser = {
 
 export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSidebarProps) {
   const [active, setActive] = useState("home");
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -67,7 +64,6 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
 
   const goHome = () => {
     setActive("home");
-    setIsNotificationOpen(false);
     setIsUploadOpen(false);
     onHomeClick?.();
   };
@@ -109,8 +105,6 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
             const isActive =
               item.id === "upload"
                 ? isUploadOpen
-                : item.id === "notifications"
-                ? isNotificationOpen
                 : active === item.id;
             return (
               <button
@@ -118,8 +112,6 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
                 onClick={() => {
                   if (item.id === "upload") {
                     setIsUploadOpen(true);
-                  } else if (item.id === "notifications") {
-                    setIsNotificationOpen(true);
                   } else {
                     goHome();
                   }
@@ -154,11 +146,6 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
                 >
                   {item.label}
                 </span>
-                {item.id === "notifications" && (
-                  <span className="hidden lg:flex ml-auto w-5 h-5 rounded-full bg-[#3b82f6] text-white text-[10px] font-bold items-center justify-center">
-                    3
-                  </span>
-                )}
               </button>
             );
           })}
@@ -223,12 +210,6 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
           )}
         </div>
       </aside>
-
-      {/* Notification Popup */}
-      <NotificationPopup
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-      />
 
       {/* Upload Popup */}
       <UploadPopup

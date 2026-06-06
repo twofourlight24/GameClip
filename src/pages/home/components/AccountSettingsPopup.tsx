@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 const apiPort = "4000";
 const defaultApiBaseUrl =
@@ -40,10 +40,24 @@ export default function AccountSettingsPopup({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasUnsavedChanges =
+    nickname !== user.nickname ||
+    Boolean(avatarFile) ||
+    Boolean(currentPassword || newPassword || newPasswordConfirm || deletePassword);
+
+  const requestClose = useCallback(() => {
+    if (isSaving) return;
+
+    if (hasUnsavedChanges && !window.confirm("저장하지 않은 변경 사항이 있습니다. 저장하지 않고 닫을까요?")) {
+      return;
+    }
+
+    onClose();
+  }, [hasUnsavedChanges, isSaving, onClose]);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSaving) onClose();
+      if (event.key === "Escape") requestClose();
     };
 
     if (isOpen) {
@@ -55,7 +69,7 @@ export default function AccountSettingsPopup({
       window.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [isOpen, isSaving, onClose]);
+  }, [isOpen, requestClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -110,6 +124,10 @@ export default function AccountSettingsPopup({
 
       onUpdated(payload);
       window.dispatchEvent(new Event("gameclip:auth-changed"));
+      setAvatarFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       setMessage("프로필이 수정되었습니다.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "프로필 수정에 실패했습니다.");
@@ -192,7 +210,7 @@ export default function AccountSettingsPopup({
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => {
-          if (!isSaving) onClose();
+          requestClose();
         }}
       />
 
@@ -203,7 +221,7 @@ export default function AccountSettingsPopup({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={isSaving}
             className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/10 disabled:opacity-50"
             aria-label="닫기"

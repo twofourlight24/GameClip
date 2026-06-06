@@ -524,18 +524,25 @@ export default function CommentPopup({
             <div className="mb-2 rounded-xl border border-white/10 bg-[#27272a] px-3 py-2">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#18181b]">
-                  {currentUser.avatarUrl ? (
+                  {isAnonymous ? (
+                    <i className="ri-user-unfollow-line text-sm text-white/80" />
+                  ) : currentUser.avatarUrl ? (
                     <img src={currentUser.avatarUrl} alt={currentUser.nickname} className="h-full w-full object-cover" />
                   ) : (
                     <i className="ri-user-line text-sm text-white/80" />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-white">{currentUser.nickname}</p>
-                  <p className="truncate text-[10px] text-[#a1a1aa]">@{currentUser.username} 계정으로 댓글</p>
+                  <p className="truncate text-xs font-semibold text-white">
+                    {isAnonymous ? "익명 댓글" : currentUser.nickname}
+                  </p>
+                  <p className="truncate text-[10px] text-[#a1a1aa]">
+                    {isAnonymous ? "계정 정보는 댓글에 표시되지 않습니다." : `@${currentUser.username} 계정으로 댓글`}
+                  </p>
                 </div>
               </div>
-              <label className="mt-2 flex items-center gap-2 text-xs font-medium text-[#a1a1aa]">
+              <label className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#18181b] px-3 py-2 text-xs font-medium text-[#a1a1aa]">
+                <span>익명으로 댓글</span>
                 <input
                   type="checkbox"
                   checked={isAnonymous}
@@ -543,13 +550,12 @@ export default function CommentPopup({
                   disabled={isSubmitting}
                   className="h-4 w-4 accent-sky-500"
                 />
-                익명으로 댓글
               </label>
             </div>
           ) : null}
 
           {needsManualIdentity && (
-            <div className="mb-2 grid gap-2">
+            <div className={`mb-2 grid gap-2 ${currentUser ? "rounded-xl border border-white/10 bg-[#202024] p-2" : ""}`}>
               <input
                 type="text"
                 value={nickname}
