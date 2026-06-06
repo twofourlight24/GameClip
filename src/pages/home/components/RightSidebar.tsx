@@ -78,13 +78,13 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
   }, [selectedGameName, videos]);
 
   return (
-    <aside className="w-[240px] xl:w-[260px] shrink-0 max-h-[calc(100dvh-32px)] overflow-y-auto">
-      <div className="sticky top-4 space-y-4">
+    <aside className="h-[calc(100dvh-32px)] w-[240px] shrink-0 overflow-hidden xl:w-[260px]">
+      <div className="sticky top-4 flex h-full flex-col gap-4">
         {/* Trending Games */}
-        <div className="bg-[#27272a] rounded-2xl border border-[#3f3f46] p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4 scrollbar-hide">
           <h3 className="text-[#f4f4f5] font-bold text-sm mb-3 flex items-center gap-2">
             <i className="ri-fire-fill text-sky-400"></i>
-            인기 게임
+            게임 목록
           </h3>
           <GameGrid games={topGames} selectedGameName={selectedGameName} onGameClick={onGameClick} />
 
@@ -137,7 +137,7 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
         </div>
 
         {/* Video Rankings */}
-        <div className="bg-[#27272a] rounded-2xl border border-[#3f3f46] p-4">
+        <div className="shrink-0 rounded-2xl border border-[#3f3f46] bg-[#27272a] p-4">
           <h3 className="mb-3 flex min-w-0 items-center gap-2 text-sm font-bold text-[#f4f4f5]">
             <i className="ri-trophy-fill shrink-0 text-amber-400"></i>
             <span className="min-w-0 truncate">
