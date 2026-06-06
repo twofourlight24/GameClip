@@ -21,7 +21,9 @@ type UploadedVideo = {
   hasPassword?: boolean;
   videoUrl: string;
   likes?: number;
+  weeklyLikes?: number;
   comments?: number;
+  viewCount?: number;
 };
 
 interface RightSidebarProps {
@@ -74,7 +76,17 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
       ? videos.filter((video) => video.gameName === selectedGameName)
       : videos;
 
-    return [...rankingSource].sort((a, b) => b.likes - a.likes).slice(0, 8);
+    return [...rankingSource]
+      .sort((a, b) => {
+        const weeklyLikeDifference = (b.weeklyLikes ?? 0) - (a.weeklyLikes ?? 0);
+        if (weeklyLikeDifference !== 0) return weeklyLikeDifference;
+
+        const likeDifference = b.likes - a.likes;
+        if (likeDifference !== 0) return likeDifference;
+
+        return (b.viewCount ?? 0) - (a.viewCount ?? 0);
+      })
+      .slice(0, 8);
   }, [selectedGameName, videos]);
 
   return (
@@ -145,7 +157,7 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
           <h3 className="mb-3 flex min-w-0 items-center gap-2 text-sm font-bold text-[#f4f4f5]">
             <i className="ri-trophy-fill shrink-0 text-amber-400"></i>
             <span className="min-w-0 truncate">
-              {selectedGameName ? `${selectedGameName} 인기 클립` : "인기 클립 순위"}
+              {selectedGameName ? `${selectedGameName} 주간 인기` : "주간 인기 클립"}
             </span>
           </h3>
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto scrollbar-hide">
@@ -206,7 +218,7 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
                   <div className="flex items-center gap-0.5 shrink-0">
                     <i className="ri-heart-3-fill text-[#ef4444] text-[10px]"></i>
                     <span className="text-[#a1a1aa] text-[10px] font-medium">
-                      {formatLikes(video.likes)}
+                      {formatLikes(video.weeklyLikes ?? 0)}
                     </span>
                   </div>
                 </button>
@@ -315,7 +327,8 @@ function toRankVideo(video: UploadedVideo): Video {
     genreTags,
     thumbnail: "",
     videoUrl: video.videoUrl,
-    views: "0",
+    viewCount: video.viewCount ?? 0,
+    views: formatViews(video.viewCount ?? 0),
     duration: "재생",
     uploader: video.uploader || "익명",
     isAnonymous: video.isAnonymous ?? false,
@@ -323,9 +336,16 @@ function toRankVideo(video: UploadedVideo): Video {
     hasPassword: video.hasPassword ?? false,
     avatar: video.avatarUrl || "",
     likes: video.likes ?? 0,
+    weeklyLikes: video.weeklyLikes ?? 0,
     comments: video.comments ?? 0,
     tags: [gameName, ...genreTags].filter(Boolean),
   };
+}
+
+function formatViews(count: number) {
+  if (count >= 10000) return `${(count / 10000).toFixed(count >= 100000 ? 0 : 1)}만`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}천`;
+  return String(count);
 }
 
 function cleanApiBaseUrl(value: string) {
