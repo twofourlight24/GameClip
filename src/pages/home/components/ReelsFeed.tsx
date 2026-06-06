@@ -26,6 +26,7 @@ type UploadedVideo = {
   likes?: number;
   likedByMe?: boolean;
   comments?: number;
+  viewCount?: number;
 };
 
 interface ReelsFeedProps {
@@ -225,7 +226,8 @@ function toFeedVideo(video: UploadedVideo): Video {
     genreTags,
     thumbnail: "",
     videoUrl: video.videoUrl,
-    views: "0",
+    viewCount: video.viewCount ?? 0,
+    views: formatCompactCount(video.viewCount ?? 0),
     duration: "재생",
     uploader: video.uploader || "익명",
     isAnonymous: video.isAnonymous ?? false,
@@ -237,6 +239,12 @@ function toFeedVideo(video: UploadedVideo): Video {
     comments: video.comments ?? 0,
     tags: [gameName, ...genreTags].filter(Boolean),
   };
+}
+
+function formatCompactCount(count: number) {
+  if (count >= 10000) return `${(count / 10000).toFixed(count >= 100000 ? 0 : 1)}만`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}천`;
+  return String(count);
 }
 
 async function readPayload(response: Response) {

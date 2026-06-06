@@ -14,6 +14,7 @@ const usersPath = join(uploadDir, "users.json");
 const sessionsPath = join(uploadDir, "sessions.json");
 const sessionCookieName = "gameclip_session";
 const sessionMaxAgeSeconds = 7 * 24 * 60 * 60;
+const weeklyLikeWindowMs = 7 * 24 * 60 * 60 * 1000;
 const maxUploadBytes = Number(process.env.MAX_UPLOAD_BYTES || 250 * 1024 * 1024);
 const allowedExtensions = new Set([".mp4", ".webm", ".mov", ".m4v", ".avi", ".mkv"]);
 const allowedAvatarExtensions = new Set([".png", ".jpg", ".jpeg", ".webp"]);
@@ -105,6 +106,14 @@ createServer(async (request, response) => {
 
     if ((request.method === "POST" || request.method === "DELETE") && likedVideoId) {
       const video = await setVideoLike(likedVideoId, request.method === "POST", request);
+      sendJson(response, 200, await publicVideo(video, request));
+      return;
+    }
+
+    const viewedVideoId = url.pathname.match(/^\/api\/videos\/([^/]+)\/view$/)?.[1];
+
+    if (request.method === "POST" && viewedVideoId) {
+      const video = await incrementVideoView(viewedVideoId);
       sendJson(response, 200, await publicVideo(video, request));
       return;
     }
@@ -245,7 +254,9 @@ async function saveVideoUpload(request) {
     ownerUserId,
     passwordHash: ownerUserId ? null : passwordField(parts.fields.password),
     likedUserIds: [],
+    likedAtByUserId: {},
     comments: [],
+    viewCount: 0,
     originalName: file.filename,
     contentType: file.contentType,
     size: file.data.length,
@@ -488,6 +499,7 @@ function normalizeVideoRecord(video) {
     ...video,
     gameName,
     genreTags,
+    viewCount: Number.isFinite(Number(video.viewCount)) ? Math.max(0, Math.floor(Number(video.viewCount))) : 0,
     genreTag: undefined,
     gameTag: undefined,
   };
@@ -719,11 +731,38 @@ async function setVideoLike(id, shouldLike, request) {
   }
 
   const likedUserIds = Array.isArray(video.likedUserIds) ? video.likedUserIds : [];
+  const likedAtByUserId = isPlainObject(video.likedAtByUserId) ? video.likedAtByUserId : {};
   const nextLikedUserIds = shouldLike
     ? [...new Set([...likedUserIds, user.id])]
     : likedUserIds.filter((userId) => userId !== user.id);
 
   video.likedUserIds = nextLikedUserIds;
+  video.likedAtByUserId = nextLikedUserIds.reduce((nextLikedAtByUserId, userId) => {
+    if (userId === user.id && shouldLike && !likedUserIds.includes(user.id)) {
+      nextLikedAtByUserId[userId] = new Date().toISOString();
+      return nextLikedAtByUserId;
+    }
+
+    if (typeof likedAtByUserId[userId] === "string") {
+      nextLikedAtByUserId[userId] = likedAtByUserId[userId];
+    }
+
+    return nextLikedAtByUserId;
+  }, {});
+  video.updatedAt = new Date().toISOString();
+  await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
+  return video;
+}
+
+async function incrementVideoView(id) {
+  const videos = await readVideos();
+  const video = videos.find((entry) => entry.id === id);
+
+  if (!video) {
+    throw httpError(404, "Video not found.");
+  }
+
+  video.viewCount = Math.max(0, Math.floor(Number(video.viewCount) || 0)) + 1;
   video.updatedAt = new Date().toISOString();
   await writeFile(metadataPath, `${JSON.stringify(videos, null, 2)}\n`, "utf8");
   return video;
@@ -1214,6 +1253,7 @@ function toPublicVideo(video, request, owner = null, currentUser = null) {
   const uploader = video.isAnonymous ? video.anonymousUploader || "익명" : owner?.nickname || publicVideo.uploader || "익명";
   const ownerAvatarUrl = owner ? getPublicAvatarUrl(owner, request) : null;
   const likedUserIds = Array.isArray(video.likedUserIds) ? video.likedUserIds : [];
+  const likedAtByUserId = isPlainObject(video.likedAtByUserId) ? video.likedAtByUserId : {};
   const comments = Array.isArray(video.comments) ? video.comments : [];
 
   return {
@@ -1224,12 +1264,28 @@ function toPublicVideo(video, request, owner = null, currentUser = null) {
     hasPassword: Boolean(passwordHash),
     canEdit: !video.ownerUserId || Boolean(currentUser && currentUser.id === video.ownerUserId),
     likes: likedUserIds.length,
+    weeklyLikes: countWeeklyLikes(likedAtByUserId),
+    viewCount: Math.max(0, Math.floor(Number(video.viewCount) || 0)),
     likedByMe: currentUser ? likedUserIds.includes(currentUser.id) : false,
     likedUserIds: undefined,
+    likedAtByUserId: undefined,
     comments: comments.length,
     videoPath,
     videoUrl: `${getPublicOrigin(request)}${videoPath}`,
   };
+}
+
+function countWeeklyLikes(likedAtByUserId) {
+  const cutoff = Date.now() - weeklyLikeWindowMs;
+  return Object.values(likedAtByUserId).filter((likedAt) => {
+    if (typeof likedAt !== "string") return false;
+    const likedTime = Date.parse(likedAt);
+    return Number.isFinite(likedTime) && likedTime >= cutoff;
+  }).length;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function toPublicComment(comment, request, author = null, currentUser = null) {

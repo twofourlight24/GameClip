@@ -62,7 +62,7 @@ export default function VideoCard({ video }: VideoCardProps) {
 
       {/* Info */}
       <div className="absolute bottom-0 left-0 right-0 p-4">
-        <h3 className="text-white font-semibold text-sm md:text-base leading-snug mb-2 line-clamp-2">
+        <h3 className="mb-2 text-[15px] font-bold leading-snug text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.65)] line-clamp-2 md:text-[17px]">
           {video.title}
         </h3>
         

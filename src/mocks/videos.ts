@@ -7,6 +7,7 @@ export interface Video {
   thumbnail: string;
   videoUrl?: string;
   views: string;
+  viewCount?: number;
   duration: string;
   uploader: string;
   isAnonymous?: boolean;
@@ -14,6 +15,7 @@ export interface Video {
   hasPassword?: boolean;
   avatar: string;
   likes: number;
+  weeklyLikes?: number;
   likedByMe?: boolean;
   comments: number;
   isHero?: boolean;

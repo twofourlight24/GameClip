@@ -27,9 +27,11 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
   const centerFeedbackTimerRef = useRef<number | null>(null);
   const likeMessageTimerRef = useRef<number | null>(null);
   const isPointerInsidePlayerRef = useRef(false);
+  const hasCountedViewRef = useRef(false);
   const [liked, setLiked] = useState(video.likedByMe ?? false);
   const [likeCount, setLikeCount] = useState(video.likes);
   const [commentCount, setCommentCount] = useState(video.comments);
+  const [viewCount, setViewCount] = useState(video.viewCount ?? 0);
   const [isLikeSaving, setIsLikeSaving] = useState(false);
   const [likeMessage, setLikeMessage] = useState("");
   const [isCommentOpen, setIsCommentOpen] = useState(false);
@@ -53,7 +55,12 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
     setLiked(video.likedByMe ?? false);
     setLikeCount(video.likes);
     setCommentCount(video.comments);
-  }, [video.id, video.likedByMe, video.likes, video.comments]);
+    setViewCount(video.viewCount ?? 0);
+  }, [video.id, video.likedByMe, video.likes, video.comments, video.viewCount]);
+
+  useEffect(() => {
+    hasCountedViewRef.current = false;
+  }, [video.id]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -277,6 +284,38 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
     window.dispatchEvent(new Event("gameclip:videos-changed"));
   }, [onUpdated, video]);
 
+  const countVideoView = useCallback(async () => {
+    if (hasCountedViewRef.current || !video.videoUrl) {
+      return;
+    }
+
+    hasCountedViewRef.current = true;
+
+    try {
+      const response = await fetch(`${cleanApiBaseUrl(defaultApiBaseUrl)}/api/videos/${encodeURIComponent(video.id)}/view`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const payload = (await readPayload(response)) as Partial<Video>;
+
+      if (!response.ok) {
+        throw new Error("view count failed");
+      }
+
+      const nextViewCount = payload.viewCount ?? viewCount + 1;
+      setViewCount(nextViewCount);
+      onUpdated?.({
+        ...video,
+        ...payload,
+        viewCount: nextViewCount,
+        views: formatCompactCount(nextViewCount),
+      });
+      window.dispatchEvent(new Event("gameclip:videos-changed"));
+    } catch {
+      hasCountedViewRef.current = false;
+    }
+  }, [onUpdated, video, viewCount]);
+
   const togglePlayback = useCallback(async (showFeedback = false) => {
     const videoElement = videoRef.current;
 
@@ -480,6 +519,31 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
       void togglePlayback(true);
     }
   }, [changeVolumeBy, seekBy, togglePlayback, video.videoUrl]);
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+
+    if (!videoElement || !video.videoUrl) {
+      return undefined;
+    }
+
+    const handlePlaybackProgress = () => {
+      const watchedEnough = videoElement.currentTime >= 2;
+      const watchedShortClip = videoElement.ended && videoElement.currentTime > 0;
+
+      if (watchedEnough || watchedShortClip) {
+        void countVideoView();
+      }
+    };
+
+    videoElement.addEventListener("timeupdate", handlePlaybackProgress);
+    videoElement.addEventListener("ended", handlePlaybackProgress);
+
+    return () => {
+      videoElement.removeEventListener("timeupdate", handlePlaybackProgress);
+      videoElement.removeEventListener("ended", handlePlaybackProgress);
+    };
+  }, [countVideoView, video.videoUrl]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleWindowKeyDown);
@@ -697,6 +761,13 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
                       </span>
                     </button>
 
+                    <span className="flex h-10 min-w-10 items-center justify-center gap-1 rounded-full bg-white/10 px-2 text-white/95">
+                      <i className="ri-eye-line text-xl text-white" />
+                      <span className="text-[11px] font-semibold tabular-nums">
+                        {formatCompactCount(viewCount)}
+                      </span>
+                    </span>
+
                     <button
                       type="button"
                       onClick={() => setIsMoreOpen(true)}
@@ -716,9 +787,9 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
           )}
 
           {/* Bottom info */}
-          <div className={`pointer-events-none absolute left-0 right-14 p-3 pb-8 z-10 transition-[bottom,opacity] duration-300 ${video.videoUrl && videoUiVisible ? "bottom-16" : "bottom-0"} ${videoUiVisible ? "opacity-100" : "opacity-0"}`}>
+          <div className={`pointer-events-none absolute left-0 right-10 z-10 px-4 pb-8 pt-3 transition-[bottom,opacity] duration-300 sm:right-20 sm:px-5 ${video.videoUrl && videoUiVisible ? "bottom-16" : "bottom-0"} ${videoUiVisible ? "opacity-100" : "opacity-0"}`}>
             {/* Uploader */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-[#27272a]">
                 <i className="ri-user-line text-white/80 text-sm" />
                 {video.avatar ? (
@@ -738,9 +809,9 @@ export default function ReelsItem({ video, showHeaderSpacer = true, onUpdated, o
             </div>
 
             {/* Title */}
-            <p className="text-white text-[13px] font-medium leading-relaxed mb-2 drop-shadow-lg line-clamp-2">
+            <h2 className="mb-3 max-w-[920px] text-base font-extrabold leading-snug text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-3 sm:text-lg md:text-xl">
               {video.title}
-            </p>
+            </h2>
 
             <div className="mb-2 flex flex-wrap items-center gap-1.5">
               <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-sky-300/40 bg-sky-400/20 px-2 py-1 text-[10px] font-bold text-sky-50 shadow-lg shadow-black/20 backdrop-blur-sm">

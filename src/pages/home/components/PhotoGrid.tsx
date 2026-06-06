@@ -58,6 +58,10 @@ export default function PhotoGrid({ videos, onVideoClick }: PhotoGridProps) {
               <p className="min-w-0 truncate text-[10px] text-white/75">{video.gameName}</p>
               <div className="flex shrink-0 items-center gap-2 rounded-full bg-black/45 px-2 py-1 text-[10px] font-semibold text-white/95 backdrop-blur-sm">
                 <span className="flex items-center gap-1 tabular-nums">
+                  <i className="ri-eye-fill text-[11px] text-emerald-300" />
+                  {video.views || formatCompactCount(video.viewCount ?? 0)}
+                </span>
+                <span className="flex items-center gap-1 tabular-nums">
                   <i className="ri-heart-3-fill text-[11px] text-red-500" />
                   {formatCompactCount(video.likes)}
                 </span>
