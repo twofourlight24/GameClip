@@ -117,7 +117,7 @@ export default function LeftSidebar({ onUploadSuccess, onHomeClick }: LeftSideba
                   }
                 }}
                 className={`
-                  group flex items-center gap-4 px-3 lg:px-4 py-3 rounded-xl transition-all duration-200
+                  group flex items-center justify-center gap-0 px-0 py-3 rounded-xl transition-all duration-200 lg:justify-start lg:gap-4 lg:px-4
                   ${isActive ? "bg-[#18181b] font-semibold" : "hover:bg-[#18181b]"}
                 `}
               >

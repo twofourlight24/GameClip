@@ -29,6 +29,7 @@ type UploadedVideo = {
 interface RightSidebarProps {
   onGameClick?: (gameName: string) => void;
   selectedGameName?: string | null;
+  className?: string;
 }
 
 const rankColors: Record<number, string> = {
@@ -37,7 +38,7 @@ const rankColors: Record<number, string> = {
   3: "text-orange-400 bg-orange-400/10",
 };
 
-export default function RightSidebar({ onGameClick, selectedGameName = null }: RightSidebarProps) {
+export default function RightSidebar({ onGameClick, selectedGameName = null, className = "" }: RightSidebarProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isGameListExpanded, setIsGameListExpanded] = useState(false);
 
@@ -90,7 +91,7 @@ export default function RightSidebar({ onGameClick, selectedGameName = null }: R
   }, [selectedGameName, videos]);
 
   return (
-    <aside className="h-[calc(100dvh-32px)] w-[240px] shrink-0 overflow-hidden xl:w-[260px]">
+    <aside className={`${className || "h-[calc(100dvh-32px)] w-[240px] xl:w-[260px]"} shrink-0 overflow-hidden`}>
       <div className="sticky top-4 flex h-full flex-col gap-4">
         {/* Trending Games */}
         <div

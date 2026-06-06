@@ -7,7 +7,7 @@ interface PhotoGridProps {
 
 export default function PhotoGrid({ videos, onVideoClick }: PhotoGridProps) {
   return (
-    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-3 gap-1 px-1 pb-8">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-1 px-1 pb-8 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] 2xl:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
       {videos.map((video) => (
         <button
           type="button"
